@@ -1,9 +1,13 @@
 #include "tiny_basic_interpreter.h"
 #include <stdio.h>
 
-#include <string.h>
+
 
 static  char program[] =
+"3 ia = 119+20\n\
+4 print ia\n\
+5 end";
+/*
 "3 GOSUB 100\n\
 20 for i = 1 to 6\n\
 30 print i\n\
@@ -14,7 +18,7 @@ static  char program[] =
 102 t = 10\n\
 103 n= t + 9 * 2\n\
 104 print n\n\
-110 return\n";
+110 return\n";*/
 
 
 

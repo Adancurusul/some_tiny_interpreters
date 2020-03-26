@@ -1,4 +1,6 @@
-һЩС�͵ĸ���ֲ�Խ�����
-Ŀǰ֧��brainfuck��һ����basic����
+一些小型的高移植性解释器
+目前支持brainfuck和一个类basic语言
 
-��ֲ�Ժ��ڴ�ռ�ö���С��tinybasic��������ֲֻ��Ҫ֧��printf���ɣ����忴���룩
+移植性和内存占用都很小，tinybasic解释器移植只需要支持printf即可（具体看代码）
+
+因为仍然在开发中所以会有很多bug

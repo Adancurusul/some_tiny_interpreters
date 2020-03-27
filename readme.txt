@@ -4,3 +4,6 @@
 移植性和内存占用都很小，tinybasic解释器移植只需要支持printf即可（具体看代码）
 
 因为仍然在开发中所以会有很多bug
+
+有疑问或建议可以联系
+chen.yuheng@nexuslink.cn

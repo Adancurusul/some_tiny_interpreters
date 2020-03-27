@@ -918,7 +918,6 @@ static void let_handler(void)
 {
     register int var;
 
-    
     char *st = variable_now();
     //printf("varnum:%s\n",st);
 
@@ -926,7 +925,7 @@ static void let_handler(void)
     accept_token(EQUAL);
     var = expr();
     //printf("valuenum:%d\n", var);
-    set_variable_int(st,var );
+    set_variable_int(st, var);
     accept_token(CR);
 }
 
@@ -1198,11 +1197,9 @@ int get_variable_int(char *name)
 
         if (a)
         {
-
             int var_num_now = search_index[i].name_ptr;
             return var_mem[var_num_now].U.i;
         }
     }
-
     return 0;
 }

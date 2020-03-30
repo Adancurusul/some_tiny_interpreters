@@ -4,7 +4,7 @@
 
 
 static  char program[] =
-"3 ia = 119+20\n\
+"3 ia = 119.6+20\n\
 4 print ia-20\n\
 6 print ia-20-200\n\
 10 end";

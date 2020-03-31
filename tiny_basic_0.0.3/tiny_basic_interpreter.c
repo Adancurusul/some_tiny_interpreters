@@ -22,8 +22,6 @@ interpreter_finished作为结束标志
 
 */
 
-
-
 #include <stdio.h> //printf
 #include "tiny_basic_interpreter.h"
 #define MAX_GOSUB_DEPTH 20
@@ -41,7 +39,7 @@ static char const *program_ptr, *ptr, *nextptr, *startptr;
 typedef struct for_state
 {
     int line_after_for;
-    char* for_variable;
+    char *for_variable;
     int to;
 } FOR_STATE;
 
@@ -100,7 +98,6 @@ static void line_handler(void);
 static void handler(void);
 int search_finished(void);
 
-
 ///////////////////////////////////////////////
 //////////////////////////////////////////////
 //下面是string的替代，如目标平台支持下面几个函数可去掉
@@ -114,6 +111,7 @@ int strncmp(const char *str1, const char *str2, int count);
 int strcmp(const char *str1, const char *str2);
 char *itoa(int num, char *str, int radix);
 char *strcpy(char *strDest, const char *strSrc);
+void * memset(void *s, int c, size_t n);
 
 char *itoa(int num, char *str, int radix)
 {
@@ -155,6 +153,17 @@ char *itoa(int num, char *str, int radix)
     }
 
     return str; //返回转换后的字符串
+}
+void * memset(void *s, int c, size_t n)
+{
+    unsigned char *p = (unsigned char *)s; //强制转换成字符型指针
+
+    while (n > 0)
+    {
+        *p++ = (unsigned char)c;
+        n--;
+    }
+    return s;
 }
 
 char *strncpy(char *dest, const char *str, int count)
@@ -441,14 +450,14 @@ static CORE_DATA get_next_token(void)
         return ENDINPUT;
     }
 
-    if (isdigit(*ptr) )
+    if (isdigit(*ptr))
     {
         for (i = 0; i < MAX_NUMLEN; ++i)
         {
-            if (!isdigit(ptr[i]) && ptr[i]!='.'&&ptr[i]!='E' &&ptr[i]!='e')
+            if (!isdigit(ptr[i]) && ptr[i] != '.' && ptr[i] != 'E' && ptr[i] != 'e')
             {
-                
-                if (ptr[i]!='.'&&ptr[i]!='E' &&ptr[i]!='e')
+
+                if (ptr[i] != '.' && ptr[i] != 'E' && ptr[i] != 'e')
                 {
                     if (i > 0)
                     {
@@ -463,11 +472,13 @@ static CORE_DATA get_next_token(void)
                     }
                 }
             }
-            if (!isdigit(ptr[i])&& ptr[i]!='.'&&ptr[i]!='E' &&ptr[i]!='e')
+            if (!isdigit(ptr[i]) && ptr[i] != '.' && ptr[i] != 'E' && ptr[i] != 'e')
             {
-                if(ptr[i]!='.'){
-                printf("get_next_token: error due to malformed number\n");
-                return ERROR;}
+                if (ptr[i] != '.')
+                {
+                    printf("get_next_token: error due to malformed number\n");
+                    return ERROR;
+                }
             }
         }
         printf("get_next_token: error due to too long number\n");
@@ -498,7 +509,6 @@ static CORE_DATA get_next_token(void)
                 return kt->token;
             }
         }
-        
     }
     startptr = ptr;
     while (*ptr >= 'a' && *ptr <= 'z')
@@ -676,13 +686,13 @@ static VARIANT factor(void)
     register double r;
     int type;
     VARIANT t;
-    
+
     switch (search_token())
     {
     case NUMBER:
         r = search_num();
         type = var_double;
-        t.type =type;
+        t.type = type;
         t.U.d = r;
         accept_token(NUMBER);
         break;
@@ -695,7 +705,7 @@ static VARIANT factor(void)
         t = varfactor();
         break;
     }
-   // printf("thenum :%g\n",r);
+    // printf("thenum :%g\n",r);
     return t;
 }
 
@@ -703,44 +713,46 @@ static VARIANT term(void)
 {
     register double f1, f2;
     register CORE_DATA op;
-    VARIANT t1,t2;
+    VARIANT t1, t2;
 
     t1 = factor();
-    switch(t1.type){
-        case(var_double):
+    switch (t1.type)
+    {
+    case (var_double):
         f1 = t1.U.d;
 
-    //printf("value in term:%g\n",f1);
-    op = search_token();
-    while (op == ASTRISK ||
-           op == SLASH ||
-           op == PERCENT)
-    {
-        search_next();
-        t2 = factor();
-        switch(t2.type){
-        case(var_double):
-        f2 = t2.U.d;
-        break;
-    }
-        switch (op)
-        {
-        case ASTRISK:
-            f1 = f1 * f2;
-            break;
-        case SLASH:
-            f1 = f1 / f2;
-            break;
-        case PERCENT:
-            f1 = (int)f1 % (int)f2;
-            break;
-        }
+        //printf("value in term:%g\n",f1);
         op = search_token();
-    }
-    
-    t1.U.d = f1;
-    return t1;
-            break;
+        while (op == ASTRISK ||
+               op == SLASH ||
+               op == PERCENT)
+        {
+            search_next();
+            t2 = factor();
+            switch (t2.type)
+            {
+            case (var_double):
+                f2 = t2.U.d;
+                break;
+            }
+            switch (op)
+            {
+            case ASTRISK:
+                f1 = f1 * f2;
+                break;
+            case SLASH:
+                f1 = f1 / f2;
+                break;
+            case PERCENT:
+                f1 = (int)f1 % (int)f2;
+                break;
+            }
+            op = search_token();
+        }
+
+        t1.U.d = f1;
+        return t1;
+        break;
     }
 }
 
@@ -748,43 +760,44 @@ static VARIANT expr(void)
 {
     register double t1, t2;
     register CORE_DATA op;
-    VARIANT v1,v2;
+    VARIANT v1, v2;
 
     v1 = term();
-    switch(v1.type){
-        case(var_double):
+    switch (v1.type)
+    {
+    case (var_double):
         t1 = v1.U.d;
 
-    //printf("exprvalue : %g\n",t1);
-    op = search_token();
-    while (op == PLUS ||
-           op == MINUS ||
-           op == AND ||
-           op == OR)
-    {
-        search_next();
-        v2 = term();
-        t2 = v2.U.d;
-        switch (op)
-        {
-        case PLUS:
-            t1 = t1 + t2;
-            break;
-        case MINUS:
-            t1 = t1 - t2;
-            break;
-        case AND:
-            t1 = (int)t1 & (int)t2;
-            break;
-        case OR:
-            t1 = (int)t1 | (int)t2;
-            break;
-        }
+        //printf("exprvalue : %g\n",t1);
         op = search_token();
-    }
-    v1.U.d = t1;
-    return v1;
-            break;
+        while (op == PLUS ||
+               op == MINUS ||
+               op == AND ||
+               op == OR)
+        {
+            search_next();
+            v2 = term();
+            t2 = v2.U.d;
+            switch (op)
+            {
+            case PLUS:
+                t1 = t1 + t2;
+                break;
+            case MINUS:
+                t1 = t1 - t2;
+                break;
+            case AND:
+                t1 = (int)t1 & (int)t2;
+                break;
+            case OR:
+                t1 = (int)t1 | (int)t2;
+                break;
+            }
+            op = search_token();
+        }
+        v1.U.d = t1;
+        return v1;
+        break;
     }
 }
 
@@ -793,38 +806,38 @@ static double relation(void)
     register double t1, t2;
     register CORE_DATA op;
     int r1;
-    VARIANT v1,v2;
+    VARIANT v1, v2;
 
-     
     v1 = expr();
 
-    switch(v1.type){
-        case(var_double):
-        t1 = v1.U.d;
-    op = search_token();
-    while (op == LIGHTER ||
-           op == GREATER ||
-           op == EQUAL)
+    switch (v1.type)
     {
-        search_next();
-        v2 = expr();
-        t2 = v2.U.d;
-        switch (op)
-        {
-        case LIGHTER:
-            r1 = t1 < t2;
-            break;
-        case GREATER:
-            r1 = t1 > t2;
-            break;
-        case EQUAL:
-            r1 = t1 == t2;
-            break;
-        }
+    case (var_double):
+        t1 = v1.U.d;
         op = search_token();
-    }
-    return r1;
-            break;
+        while (op == LIGHTER ||
+               op == GREATER ||
+               op == EQUAL)
+        {
+            search_next();
+            v2 = expr();
+            t2 = v2.U.d;
+            switch (op)
+            {
+            case LIGHTER:
+                r1 = t1 < t2;
+                break;
+            case GREATER:
+                r1 = t1 > t2;
+                break;
+            case EQUAL:
+                r1 = t1 == t2;
+                break;
+            }
+            op = search_token();
+        }
+        return r1;
+        break;
     }
 }
 
@@ -970,7 +983,7 @@ static void return_handler(void)
 
 static void next_handler(void)
 {
-    char* var;
+    char *var;
 
     accept_token(K_NEXT);
     var = variable_now();
@@ -980,11 +993,11 @@ static void next_handler(void)
     {
         VARIANT v = get_variable(var);
         double t0 = v.U.d;
-        v.U.d = t0+1; 
+        v.U.d = t0 + 1;
         int t = (int)t0;
-        
+
         set_variable(var,
-                         v);
+                     v);
         if (t <= for_stack[for_stack_ptr - 1].to)
         {
             jump_linenum(for_stack[for_stack_ptr - 1].line_after_for);
@@ -1003,7 +1016,7 @@ static void next_handler(void)
 
 static void for_handler(void)
 {
-    char * for_variable;
+    char *for_variable;
     int to;
 
     accept_token(K_FOR);
@@ -1012,7 +1025,7 @@ static void for_handler(void)
     accept_token(EQUAL);
     set_variable(for_variable, expr());
     accept_token(K_TO);
-    VARIANT v  = expr();
+    VARIANT v = expr();
     to = (int)v.U.d;
     accept_token(CR);
 
@@ -1037,8 +1050,8 @@ static void end_handler(void)
 
 static void peek_handler()
 {
-    char * var;
-    VARIANT  dst;
+    char *var;
+    VARIANT dst;
     accept_token(K_PEEK);
     var = variable_now();
     accept_token(VARIABLE);
@@ -1048,7 +1061,7 @@ static void peek_handler()
 }
 static void poke_handler()
 {
-    int * dst;
+    int *dst;
     VARIANT var;
 
     accept_token(K_POKE);

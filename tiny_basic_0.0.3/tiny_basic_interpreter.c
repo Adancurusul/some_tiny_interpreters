@@ -41,7 +41,7 @@ static char const *program_ptr, *ptr, *nextptr, *startptr;
 typedef struct for_state
 {
     int line_after_for;
-    int for_variable;
+    char* for_variable;
     int to;
 } FOR_STATE;
 
@@ -95,7 +95,7 @@ static FOR_STATE for_stack[MAX_FOR_DEPTHMAX_FOR_DEPTH];
 static int for_stack_ptr;
 //static char variables[MAX_VARNUM];
 static int ended;
-static double expr(void);
+static VARIANT expr(void);
 static void line_handler(void);
 static void handler(void);
 int search_finished(void);
@@ -144,7 +144,7 @@ typedef enum
 ///////////////////////////////////////////////
 //////////////////////////////////////////////
 //下面是string的替代，如目标平台支持下面几个函数可去掉
-double get_variable_int(char *name);
+VARIANT get_variable(char *name);
 int atoi(const char *src);
 void *memcpy(void *dest, const void *src, int count);
 char *strchr(char *str, const char c);
@@ -485,10 +485,10 @@ static CORE_DATA get_next_token(void)
     {
         for (i = 0; i < MAX_NUMLEN; ++i)
         {
-            if (!isdigit(ptr[i]) && ptr[i]!='.')
+            if (!isdigit(ptr[i]) && ptr[i]!='.'&&ptr[i]!='E' &&ptr[i]!='e')
             {
                 
-                if (ptr[i]!='.')
+                if (ptr[i]!='.'&&ptr[i]!='E' &&ptr[i]!='e')
                 {
                     if (i > 0)
                     {
@@ -503,7 +503,7 @@ static CORE_DATA get_next_token(void)
                     }
                 }
             }
-            if (!isdigit(ptr[i]))
+            if (!isdigit(ptr[i])&& ptr[i]!='.'&&ptr[i]!='E' &&ptr[i]!='e')
             {
                 if(ptr[i]!='.'){
                 printf("get_next_token: error due to malformed number\n");
@@ -538,6 +538,7 @@ static CORE_DATA get_next_token(void)
                 return kt->token;
             }
         }
+        
     }
     startptr = ptr;
     while (*ptr >= 'a' && *ptr <= 'z')
@@ -697,47 +698,58 @@ static void accept_token(int token)
     search_next();
 }
 
-static double varfactor(void)
+static VARIANT varfactor(void)
 {
     register double r;
+    VARIANT t;
     char *st = variable_now();
     //printf("return: st %s\n",st);
-    r = get_variable_int(st);
+    t = get_variable(st);
     //printf("ooooaa%d\n",r);
 
     accept_token(VARIABLE);
-    return r;
+    return t;
 }
 
-static double factor(void)
+static VARIANT factor(void)
 {
     register double r;
-
+    int type;
+    VARIANT t;
+    
     switch (search_token())
     {
     case NUMBER:
         r = search_num();
+        type = var_double;
+        t.type =type;
+        t.U.d = r;
         accept_token(NUMBER);
         break;
     case LEFTBRACKET:
         accept_token(LEFTBRACKET);
-        r = expr();
+        t = expr();
         accept_token(RIGHTBRACKET);
         break;
     default:
-        r = varfactor();
+        t = varfactor();
         break;
     }
    // printf("thenum :%g\n",r);
-    return r;
+    return t;
 }
 
-static double term(void)
+static VARIANT term(void)
 {
     register double f1, f2;
     register CORE_DATA op;
+    VARIANT t1,t2;
 
-    f1 = factor();
+    t1 = factor();
+    switch(t1.type){
+        case(var_double):
+        f1 = t1.U.d;
+
     //printf("value in term:%g\n",f1);
     op = search_token();
     while (op == ASTRISK ||
@@ -745,7 +757,12 @@ static double term(void)
            op == PERCENT)
     {
         search_next();
-        f2 = factor();
+        t2 = factor();
+        switch(t2.type){
+        case(var_double):
+        f2 = t2.U.d;
+        break;
+    }
         switch (op)
         {
         case ASTRISK:
@@ -760,15 +777,24 @@ static double term(void)
         }
         op = search_token();
     }
-    return f1;
+    
+    t1.U.d = f1;
+    return t1;
+            break;
+    }
 }
 
-static double expr(void)
+static VARIANT expr(void)
 {
     register double t1, t2;
     register CORE_DATA op;
+    VARIANT v1,v2;
 
-    t1 = term();
+    v1 = term();
+    switch(v1.type){
+        case(var_double):
+        t1 = v1.U.d;
+
     //printf("exprvalue : %g\n",t1);
     op = search_token();
     while (op == PLUS ||
@@ -777,7 +803,8 @@ static double expr(void)
            op == OR)
     {
         search_next();
-        t2 = term();
+        v2 = term();
+        t2 = v2.U.d;
         switch (op)
         {
         case PLUS:
@@ -795,37 +822,50 @@ static double expr(void)
         }
         op = search_token();
     }
-    return t1;
+    v1.U.d = t1;
+    return v1;
+            break;
+    }
 }
 
-static int relation(void)
+static double relation(void)
 {
-    register int r1, r2;
+    register double t1, t2;
     register CORE_DATA op;
+    int r1;
+    VARIANT v1,v2;
 
-    r1 = expr();
+     
+    v1 = expr();
+
+    switch(v1.type){
+        case(var_double):
+        t1 = v1.U.d;
     op = search_token();
     while (op == LIGHTER ||
            op == GREATER ||
            op == EQUAL)
     {
         search_next();
-        r2 = expr();
+        v2 = expr();
+        t2 = v2.U.d;
         switch (op)
         {
         case LIGHTER:
-            r1 = r1 < r2;
+            r1 = t1 < t2;
             break;
         case GREATER:
-            r1 = r1 > r2;
+            r1 = t1 > t2;
             break;
         case EQUAL:
-            r1 = r1 == r2;
+            r1 = t1 == t2;
             break;
         }
         op = search_token();
     }
     return r1;
+            break;
+    }
 }
 
 static void jump_linenum(int linenum)
@@ -877,7 +917,7 @@ static void print_handler(void)
         else if (search_token() == VARIABLE ||
                  search_token() == NUMBER)
         {
-            printf("%g", expr());
+            printf("%g", expr().U.d);
         }
         else
         {
@@ -923,7 +963,7 @@ static void if_handler(void)
 
 static void let_handler(void)
 {
-    register double var;
+    register VARIANT var;
 
     char *st = variable_now();
     //printf("varnum:%s\n",st);
@@ -932,7 +972,7 @@ static void let_handler(void)
     accept_token(EQUAL);
     var = expr();
     //printf("valuenum:%g\n", var);
-    set_variable_int(st, var);
+    set_variable(st, var);
     accept_token(CR);
 }
 
@@ -970,7 +1010,7 @@ static void return_handler(void)
 
 static void next_handler(void)
 {
-    register int var;
+    char* var;
 
     accept_token(K_NEXT);
     var = variable_now();
@@ -978,9 +1018,14 @@ static void next_handler(void)
     if (for_stack_ptr > 0 &&
         var == for_stack[for_stack_ptr - 1].for_variable)
     {
-        set_variable_int(var,
-                         get_variable_int(var) + 1);
-        if (get_variable_int(var) <= for_stack[for_stack_ptr - 1].to)
+        VARIANT v = get_variable(var);
+        double t0 = v.U.d;
+        v.U.d = t0+1; 
+        int t = (int)t0;
+        
+        set_variable(var,
+                         v);
+        if (t <= for_stack[for_stack_ptr - 1].to)
         {
             jump_linenum(for_stack[for_stack_ptr - 1].line_after_for);
         }
@@ -998,20 +1043,22 @@ static void next_handler(void)
 
 static void for_handler(void)
 {
-    register int for_variable, to;
+    char * for_variable;
+    int to;
 
     accept_token(K_FOR);
     for_variable = variable_now();
     accept_token(VARIABLE);
     accept_token(EQUAL);
-    set_variable_int(for_variable, expr());
+    set_variable(for_variable, expr());
     accept_token(K_TO);
-    to = expr();
+    VARIANT v  = expr();
+    to = (int)v.U.d;
     accept_token(CR);
 
     if (for_stack_ptr < MAX_FOR_DEPTHMAX_FOR_DEPTH)
     {
-        for_stack[for_stack_ptr].line_after_for = search_num();
+        for_stack[for_stack_ptr].line_after_for = (int)search_num();
         for_stack[for_stack_ptr].for_variable = for_variable;
         for_stack[for_stack_ptr].to = to;
 
@@ -1030,28 +1077,29 @@ static void end_handler(void)
 
 static void peek_handler()
 {
-    register int var;
-    double *dst;
+    char * var;
+    VARIANT  dst;
     accept_token(K_PEEK);
     var = variable_now();
     accept_token(VARIABLE);
     accept_token(COMMA);
-    dst = (int)expr();
-    set_variable_int(var, *dst);
+    dst = expr();
+    set_variable(var, dst);
 }
 static void poke_handler()
 {
-    int *dst;
-    register int var;
+    int * dst;
+    VARIANT var;
 
     accept_token(K_POKE);
     //printf("okk");
-    dst = (int)expr();
+    var = expr();
+    dst = (int)var.U.d;
     accept_token(COMMA);
 
     var = expr();
 
-    *dst = var;
+    *dst = (int)var.U.d;
 
     accept_token(CR);
 }
@@ -1154,10 +1202,10 @@ int if_variable_existed(char *name) //判断变量是否已经存在
     return 1013;
 }
 
-void set_variable_int(char *name, double value) //double
+void set_variable(char *name, VARIANT value) //double
 {
     if (var_mem_ptr >= 0 && var_mem_ptr <= MAX_VARNUM) //在变量数量范围内
-    //printf("input val:%d\n",value);
+    //printf("input val:%g\n",value.U.d);
     {
         int t = if_variable_existed(name); //变量是否已经存在
         if (t != 1013)
@@ -1166,8 +1214,8 @@ void set_variable_int(char *name, double value) //double
             VARIANT val;
             char value_str[MAX_NUMLEN];
             //printf("value_to_set :%g\n",value);
-            val.type = var_double;
-            val.U.d = value;
+            //val.type = var_double;
+            val = value;
             v_n.name_ptr = var_mem_ptr;
             //itoa(value, value_str, 10);
             //search_index[var_mem_ptr].name=name;
@@ -1182,8 +1230,8 @@ void set_variable_int(char *name, double value) //double
             VARIANT val;
             char value_str[MAX_NUMLEN];
 
-            val.type = var_double;
-            val.U.d = value;
+            //val.type = var_double;
+            val = value;
             v_n.name_ptr = t;
             //itoa(value, value_str, 10);
             //search_index[var_mem_ptr].name=name;
@@ -1194,7 +1242,7 @@ void set_variable_int(char *name, double value) //double
     }
 }
 
-double get_variable_int(char *name) //取出int并返回
+VARIANT get_variable(char *name) //取出变量并返回
 {
 
     for (int i = 0; i < var_mem_ptr + 1; i++)
@@ -1206,8 +1254,8 @@ double get_variable_int(char *name) //取出int并返回
         {
             int var_num_now = search_index[i].name_ptr;
             //printf("var_get : %g\n",var_mem[var_num_now].U.d);
-            return var_mem[var_num_now].U.d;
+            return var_mem[var_num_now];
         }
     }
-    return 0.0;
+    return empty;
 }

@@ -15,8 +15,8 @@ int strncmp(const char *str1, const char *str2, int count);
 int strcmp(const char* str1, const char* str2);
 char* itoa(int num,char* str,int radix);
 
-void dic_put(char *key, char *value);
+//void dic_put(char *key, char *value);
 
-char *dic_value_for_key(char *key);
+//char *dic_value_for_key(char *key);
 
 

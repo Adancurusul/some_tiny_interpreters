@@ -4,7 +4,7 @@ tiny_basic_interpreter.o \
 
 
 tiny_basic_interpreter.o: tiny_basic_interpreter.c mymath.h
-	gcc -c $^
+	gcc -c tiny_basic_interpreter.c
 use.o:use.c tiny_basic_interpreter.h
 	gcc -c use.c
 malloc.o:malloc.c malloc.h

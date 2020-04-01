@@ -952,15 +952,17 @@ static void if_handler(void)
 static void let_handler(void)
 {
     register VARIANT var;
-
-    char *st = variable_now();
-    printf("varnum:%s\n",st);
+STR s_now ;
+    char *st_now = variable_now();
+     strcpy(s_now ,st_now);
+    //printf("varnum:%s and ",s_now);
 
     accept_token(VARIABLE);
     accept_token(EQUAL);
     var = expr();
-    //printf("valuenum:%g\n", var);
-    set_variable(st, var);
+    //printf("varnum:%s and ",s_now);
+    //printf("valuenum:%g\n", var.U.d);
+    set_variable(s_now, var);
     accept_token(CR);
 }
 
@@ -1190,7 +1192,7 @@ int if_variable_existed(char *name) //判断变量是否已经存在
     return 1013;
 }
 
-void set_variable(char *name, VARIANT value) //
+void set_variable(char * name, VARIANT value) //
 {
     if (var_mem_ptr >= 0 && var_mem_ptr <= MAX_VARNUM) //在变量数量范围内
     //printf("input val:%g\n",value.U.d);
@@ -1201,8 +1203,8 @@ void set_variable(char *name, VARIANT value) //
             VAR_NAME v_n;
             VARIANT val;
             char value_str[MAX_NUMLEN];
-            printf("valuename :%s\n",name);
-            printf("value_to_set :%g\n",value.U.d);
+            //printf("valuename :%s and ",name);
+            //printf("value_to_set :%g\n",value.U.d);
             //val.type = var_double;
             val = value;
             v_n.name_ptr = var_mem_ptr;
@@ -1237,11 +1239,11 @@ VARIANT get_variable(char *name) //取出变量并返回
     for (int i = 0; i < var_mem_ptr + 1; i++)
     {
 
-        int a = strcmp(name, search_index[i].name);
+        int a = strcmp(name, search_index[i+1].name);
 
         if (a)
         {
-            int var_num_now = search_index[i].name_ptr;
+            int var_num_now = search_index[i+1].name_ptr;
             //printf("var_get : %g\n",var_mem[var_num_now].U.d);
             return var_mem[var_num_now];
         }

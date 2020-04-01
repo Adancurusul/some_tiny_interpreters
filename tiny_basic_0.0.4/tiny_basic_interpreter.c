@@ -8,14 +8,16 @@ version：0.0.4
 完成了一个基本的词法分析器对语句拆分
 代码量仅千行，但已经支持basic中let,print,if,then,else,for,to,next,goto,gosub,return,call,end
 peek ,poke语句
-并已支持四则整型运算。
+并已支持四则运算。
+0.0.4新增pow,powf,sqrt,exp,log,ln,sin,cos,tan,arctan,artsin,arccos,sinh,consh,tanh
+    库及其综合运算（见use.c（3 iaa = pow(2,3)\n50 t = sqrt(iaa*3)\n60 print \"sqrt(pow(2,3)*3) is:\",t+20\n）
 *******************************************************************************************
 使用只用传入程序的字符串数组到interpreter_init
 然后do_interpretation即可
 interpreter_finished作为结束标志
 
 *******************************************************************************************
-0.0.3相对0.0.2支持了双精度浮点操作，但是同时内存开销也增大了不少，
+0.0.4相对0.0.3支持了math库部分功能
 下一步开始数学库的支持
 本解释器目标是作为一种高移植性，能进行科学运算的语言。
 敬请期待后续

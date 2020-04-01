@@ -954,7 +954,7 @@ static void let_handler(void)
     register VARIANT var;
 
     char *st = variable_now();
-    //printf("varnum:%s\n",st);
+    printf("varnum:%s\n",st);
 
     accept_token(VARIABLE);
     accept_token(EQUAL);
@@ -1201,7 +1201,8 @@ void set_variable(char *name, VARIANT value) //
             VAR_NAME v_n;
             VARIANT val;
             char value_str[MAX_NUMLEN];
-            //printf("value_to_set :%g\n",value);
+            printf("valuename :%s\n",name);
+            printf("value_to_set :%g\n",value.U.d);
             //val.type = var_double;
             val = value;
             v_n.name_ptr = var_mem_ptr;

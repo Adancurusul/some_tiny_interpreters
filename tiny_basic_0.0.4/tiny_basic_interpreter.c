@@ -8,15 +8,14 @@ version：0.0.4
 完成了一个基本的词法分析器对语句拆分
 代码量仅千行，但已经支持basic中let,print,if,then,else,for,to,next,goto,gosub,return,call,end
 peek ,poke语句
-并已支持四则浮点运算。
+并已支持四则整型运算。
 *******************************************************************************************
 使用只用传入程序的字符串数组到interpreter_init
 然后do_interpretation即可
 interpreter_finished作为结束标志
 
 *******************************************************************************************
-0.0.3相对0.0.4支持了部分math库如
-sqrt;exp;pow;powf;log;ln;sin;cos;tan;arcsin;arccos;arctan;sinh;cosh;tanh
+0.0.3相对0.0.2支持了双精度浮点操作，但是同时内存开销也增大了不少，
 下一步开始数学库的支持
 本解释器目标是作为一种高移植性，能进行科学运算的语言。
 敬请期待后续
@@ -44,6 +43,7 @@ typedef struct for_state
     char *for_variable;
     int to;
 } FOR_STATE;
+
 
 //typedef char STR[128];
 
@@ -359,8 +359,6 @@ const MATH_KEYS math_keywords[] = {
     {"sinh", SINH},
     {"consh", COSH},
     {"tanh", TANH},
-    {"fabs", FABS},
-    {"pi", PI},
     {NULL, NOTHING},
 };
 const KEYS keywords[] = {
@@ -439,7 +437,7 @@ static CORE_DATA get_next_token(void)
     KEYS const *kt;
     MATH_KEYS const *mk;
     int i;
-    //ptr = nextptr;
+
     if (*ptr == 0)
     {
         return ENDINPUT;
@@ -510,6 +508,8 @@ static CORE_DATA get_next_token(void)
             {
                 nextptr = ptr + strlen(mk->math_keyword);
                 op_now = mk->math_name;
+                
+                
                 return MATH;
             }
         }
@@ -609,7 +609,7 @@ char *variable_now(void)
         //printf("before%c",*ptr);
         if (*ptr != ' ')
         {
-            //printf("%c:now\n",*ptr);
+            //printf("%c:now",*ptr);
             st[i] = *ptr;
             i++;
             ++ptr;
@@ -695,7 +695,7 @@ static VARIANT factor(void)
     double math_ret;
     int type;
     VARIANT t;
-
+    
     switch (search_token())
     {
     case NUMBER:
@@ -711,7 +711,7 @@ static VARIANT factor(void)
         accept_token(RIGHTBRACKET);
         break;
     case MATH:
-    accept_token(MATH);
+    //puts("okk");
         math_ret = math_handler(op_now);
         t.type = var_double;
         t.U.d = math_ret;
@@ -1201,8 +1201,7 @@ void set_variable(char *name, VARIANT value) //
             VAR_NAME v_n;
             VARIANT val;
             char value_str[MAX_NUMLEN];
-            //printf("name to set : %s\n",name);
-            //printf("value_to_set :%g\n",value.U.d);
+            //printf("value_to_set :%g\n",value);
             //val.type = var_double;
             val = value;
             v_n.name_ptr = var_mem_ptr;
@@ -1227,14 +1226,13 @@ void set_variable(char *name, VARIANT value) //
             strcpy(search_index[t].name, name);
             search_index[t].name_ptr = var_mem_ptr;
             var_mem[t] = val;
-            var_mem_ptr++;
         }
     }
 }
 
 VARIANT get_variable(char *name) //取出变量并返回
 {
-    //printf("get_name:%s\n",name );
+
     for (int i = 0; i < var_mem_ptr + 1; i++)
     {
 
@@ -1242,7 +1240,7 @@ VARIANT get_variable(char *name) //取出变量并返回
 
         if (a)
         {
-            int var_num_now = search_index[i+1].name_ptr;
+            int var_num_now = search_index[i].name_ptr;
             //printf("var_get : %g\n",var_mem[var_num_now].U.d);
             return var_mem[var_num_now];
         }
@@ -1255,124 +1253,94 @@ double math_handler(OP_MATH name)
     double param1, param2, param3;
     double result;
     VARIANT v1, v2, v3;
+    //puts("inside");
+    accept_token(MATH);
     /*SQRT = 1,EXP,POW,POWF,LOG,LN,SIN,COS,TAN,ARCSIN,ARCCOS,ARCTAN,SINH,CONSH,TANH,NOTHING*/
-
+    accept_token(LEFTBRACKET);
     switch (name)
     {
-    case(PI):
-        result = pi;
-        break;
     case (SQRT):
-        accept_token(LEFTBRACKET);
         v1 = expr();
         result = sqrt(v1.U.d);
-        accept_token(RIGHTBRACKET);
         break;
 
     case (EXP):
-        accept_token(LEFTBRACKET);
         v1 = expr();
         result = exp(v1.U.d);
-        accept_token(RIGHTBRACKET);
         break;
 
     case (POW):
-        accept_token(LEFTBRACKET);
         v1 = expr();
         accept_token(COMMA);
         v2 = expr();
         result = pow(v1.U.d, (int)v2.U.d);
-        accept_token(RIGHTBRACKET);
         break;
 
     case (POWF):
-        accept_token(LEFTBRACKET);
         v1 = expr();
         accept_token(COMMA);
         v2 = expr();
         result = powf(v1.U.d, v2.U.d);
-        accept_token(RIGHTBRACKET);
         break;
         /*SQRT = 1,EXP,POW,POWF,LOG,LN,SIN,COS,TAN,ARCSIN,ARCCOS,ARCTAN,SINH,CONSH,TANH,NOTHING*/
     case (LOG):
-        accept_token(LEFTBRACKET);
         v1 = expr();
         accept_token(COMMA);
         v2 = expr();
         result = log(v1.U.d, v2.U.d);
-        accept_token(RIGHTBRACKET);
         break;
 
     case (LN):
-        accept_token(LEFTBRACKET);
         v1 = expr();
         result = ln(v1.U.d);
-        accept_token(RIGHTBRACKET);
         break;
 
     case (SIN):
-        accept_token(LEFTBRACKET);
         v1 = expr();
         result = sin(v1.U.d);
-        accept_token(RIGHTBRACKET);
         break;
 
     case (COS):
-        accept_token(LEFTBRACKET);
         v1 = expr();
         result = cos(v1.U.d);
-        accept_token(RIGHTBRACKET);
         break;
 
     case (TAN):
-        accept_token(LEFTBRACKET);
         v1 = expr();
         result = tan(v1.U.d);
-        accept_token(RIGHTBRACKET);
         break;
 
     case (ARCTAN):
-        accept_token(LEFTBRACKET);
         v1 = expr();
         result = arctan(v1.U.d);
-        accept_token(RIGHTBRACKET);
         break;
 
     case (ARCSIN):
-        accept_token(LEFTBRACKET);
         v1 = expr();
         result = arcsin(v1.U.d);
-        accept_token(RIGHTBRACKET);
         break;
 
     case (ARCCOS):
-        accept_token(LEFTBRACKET);
         v1 = expr();
         result = arccos(v1.U.d);
-        accept_token(RIGHTBRACKET);
         break;
 
     case (SINH):
-        accept_token(LEFTBRACKET);
         v1 = expr();
         result = sinh(v1.U.d);
-        accept_token(RIGHTBRACKET);
         break;
 
     case (COSH):
-        accept_token(LEFTBRACKET);
         v1 = expr();
         result = cosh(v1.U.d);
-        accept_token(RIGHTBRACKET);
         break;
 
     case (TANH):
-        accept_token(LEFTBRACKET);
         v1 = expr();
         result = tanh(v1.U.d);
-        accept_token(RIGHTBRACKET);
         break;
-    }
 
+    }
+    accept_token(RIGHTBRACKET);
     return result;
 }

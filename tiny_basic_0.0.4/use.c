@@ -4,10 +4,10 @@
 
 
 static  char program[] =
-"3 ia = 119.6+20\n\
-4 print ia-20\n\
-6 print ia*2/3-200\n\
-10 end";
+"3 ia = pow(2,3)\n\
+50 tk = sqrt(ia)\n\
+60 print \"sqrt of pow(2,3) is:\",tk\n\
+100 end";
 /*
 "3 GOSUB 100\n\
 20 for i = 1 to 6\n\

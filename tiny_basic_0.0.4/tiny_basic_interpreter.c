@@ -1,30 +1,30 @@
 /*
 author : Adancurusul
 chen.yuheng@nexuslink.cn
-version：0.0.3
+version：0.0.4
 介绍：
 这是一个可以嵌入任何只要支持printf函数的系统或单片机中的类basic语言解释器；
 内存开销也极小
 完成了一个基本的词法分析器对语句拆分
 代码量仅千行，但已经支持basic中let,print,if,then,else,for,to,next,goto,gosub,return,call,end
 peek ,poke语句
-并已支持四则整型运算。
+并已支持四则浮点运算。
 *******************************************************************************************
 使用只用传入程序的字符串数组到interpreter_init
 然后do_interpretation即可
 interpreter_finished作为结束标志
 
 *******************************************************************************************
-0.0.3相对0.0.2支持了双精度浮点操作，但是同时内存开销也增大了不少，
+0.0.3相对0.0.4支持了部分math库如
+sqrt;exp;pow;powf;log;ln;sin;cos;tan;arcsin;arccos;arctan;sinh;cosh;tanh
 下一步开始数学库的支持
 本解释器目标是作为一种高移植性，能进行科学运算的语言。
 敬请期待后续
 
 */
 
-
-
 #include <stdio.h> //printf
+#include "mymath.h"
 #include "tiny_basic_interpreter.h"
 #define MAX_GOSUB_DEPTH 20
 #define MAX_STR_LENGTHSTR_LENGTH 50
@@ -41,37 +41,14 @@ static char const *program_ptr, *ptr, *nextptr, *startptr;
 typedef struct for_state
 {
     int line_after_for;
-    char* for_variable;
+    char *for_variable;
     int to;
 } FOR_STATE;
 
-typedef enum
-{
-    var_null = 0,
-    var_int,
-    var_double,
-    var_string
-} variant_type;
-
-typedef char STR[128];
-
-typedef struct varname
-{
-    STR name;
-    int name_ptr;
-} VAR_NAME;
+//typedef char STR[128];
 
 static VAR_NAME search_index[MAX_VARNUM];
 
-typedef struct
-{
-    variant_type type;
-    union {
-        int i;
-        double d;
-        STR s;
-    } U;
-} VARIANT;
 static VARIANT empty = {var_int, 0};
 static VARIANT var_mem[MAX_VARNUM]; //储存变量
 int var_mem_ptr = 0;
@@ -99,7 +76,6 @@ static VARIANT expr(void);
 static void line_handler(void);
 static void handler(void);
 int search_finished(void);
-
 
 ///////////////////////////////////////////////
 //////////////////////////////////////////////
@@ -357,10 +333,37 @@ typedef struct keyword_token
     char *keyword;
     CORE_DATA token;
 } KEYS;
+typedef struct
+{
+    char *math_keyword;
+    OP_MATH math_name;
+} MATH_KEYS;
 
+OP_MATH op_now = NOTHING;
 static CORE_DATA token_now = ERROR;
 
-static const KEYS keywords[] = {
+const MATH_KEYS math_keywords[] = {
+    /*SQRT = 1,EXP,POW,POWF,LOG,LN,SIN,COS,TAN,ARCSIN,ARCCOS,ARCTAN,SINH,CONSH,TANH,NOTHING*/
+    {"sqrt", SQRT},
+    {"exp", EXP},
+    {"pow", POW},
+    {"powf", POWF},
+    {"log", LOG},
+    {"ln", LN},
+    {"sin", SIN},
+    {"cos", COS},
+    {"tan", TAN},
+    {"arcsin", ARCSIN},
+    {"arccos", ARCCOS},
+    {"arctan", ARCTAN},
+    {"sinh", SINH},
+    {"consh", COSH},
+    {"tanh", TANH},
+    {"fabs", FABS},
+    {"pi", PI},
+    {NULL, NOTHING},
+};
+const KEYS keywords[] = {
     {"let", K_LET},
     {"print", K_PRINT},
     {"if", K_IF},
@@ -434,21 +437,22 @@ static CORE_DATA if_one_char(void)
 static CORE_DATA get_next_token(void)
 {
     KEYS const *kt;
+    MATH_KEYS const *mk;
     int i;
-
+    //ptr = nextptr;
     if (*ptr == 0)
     {
         return ENDINPUT;
     }
 
-    if (isdigit(*ptr) )
+    if (isdigit(*ptr))
     {
         for (i = 0; i < MAX_NUMLEN; ++i)
         {
-            if (!isdigit(ptr[i]) && ptr[i]!='.'&&ptr[i]!='E' &&ptr[i]!='e')
+            if (!isdigit(ptr[i]) && ptr[i] != '.' && ptr[i] != 'E' && ptr[i] != 'e')
             {
-                
-                if (ptr[i]!='.'&&ptr[i]!='E' &&ptr[i]!='e')
+
+                if (ptr[i] != '.' && ptr[i] != 'E' && ptr[i] != 'e')
                 {
                     if (i > 0)
                     {
@@ -463,11 +467,13 @@ static CORE_DATA get_next_token(void)
                     }
                 }
             }
-            if (!isdigit(ptr[i])&& ptr[i]!='.'&&ptr[i]!='E' &&ptr[i]!='e')
+            if (!isdigit(ptr[i]) && ptr[i] != '.' && ptr[i] != 'E' && ptr[i] != 'e')
             {
-                if(ptr[i]!='.'){
-                printf("get_next_token: error due to malformed number\n");
-                return ERROR;}
+                if (ptr[i] != '.')
+                {
+                    printf("get_next_token: error due to malformed number\n");
+                    return ERROR;
+                }
             }
         }
         printf("get_next_token: error due to too long number\n");
@@ -498,17 +504,29 @@ static CORE_DATA get_next_token(void)
                 return kt->token;
             }
         }
-        
+        for (mk = math_keywords; mk->math_keyword != NULL; ++mk)
+        {
+            if (strncmp(ptr, mk->math_keyword, strlen(mk->math_keyword)) == 0)
+            {
+                nextptr = ptr + strlen(mk->math_keyword);
+                op_now = mk->math_name;
+                return MATH;
+            }
+        }
     }
+    int status = 0;
     startptr = ptr;
     while (*ptr >= 'a' && *ptr <= 'z')
     {
-
+        status = 1;
         nextptr = ptr + 1;
         //printf("%c:ptrnow\n",*ptr);
         ++ptr;
     }
-    return VARIABLE;
+    if (status)
+    {
+        return VARIABLE;
+    }
 
     return ERROR;
 }
@@ -591,7 +609,7 @@ char *variable_now(void)
         //printf("before%c",*ptr);
         if (*ptr != ' ')
         {
-            //printf("%c:now",*ptr);
+            //printf("%c:now\n",*ptr);
             st[i] = *ptr;
             i++;
             ++ptr;
@@ -674,15 +692,16 @@ static VARIANT varfactor(void)
 static VARIANT factor(void)
 {
     register double r;
+    double math_ret;
     int type;
     VARIANT t;
-    
+
     switch (search_token())
     {
     case NUMBER:
         r = search_num();
         type = var_double;
-        t.type =type;
+        t.type = type;
         t.U.d = r;
         accept_token(NUMBER);
         break;
@@ -691,11 +710,17 @@ static VARIANT factor(void)
         t = expr();
         accept_token(RIGHTBRACKET);
         break;
+    case MATH:
+    accept_token(MATH);
+        math_ret = math_handler(op_now);
+        t.type = var_double;
+        t.U.d = math_ret;
+        break;
     default:
         t = varfactor();
         break;
     }
-   // printf("thenum :%g\n",r);
+    // printf("thenum :%g\n",r);
     return t;
 }
 
@@ -703,44 +728,46 @@ static VARIANT term(void)
 {
     register double f1, f2;
     register CORE_DATA op;
-    VARIANT t1,t2;
+    VARIANT t1, t2;
 
     t1 = factor();
-    switch(t1.type){
-        case(var_double):
+    switch (t1.type)
+    {
+    case (var_double):
         f1 = t1.U.d;
 
-    //printf("value in term:%g\n",f1);
-    op = search_token();
-    while (op == ASTRISK ||
-           op == SLASH ||
-           op == PERCENT)
-    {
-        search_next();
-        t2 = factor();
-        switch(t2.type){
-        case(var_double):
-        f2 = t2.U.d;
-        break;
-    }
-        switch (op)
-        {
-        case ASTRISK:
-            f1 = f1 * f2;
-            break;
-        case SLASH:
-            f1 = f1 / f2;
-            break;
-        case PERCENT:
-            f1 = (int)f1 % (int)f2;
-            break;
-        }
+        //printf("value in term:%g\n",f1);
         op = search_token();
-    }
-    
-    t1.U.d = f1;
-    return t1;
-            break;
+        while (op == ASTRISK ||
+               op == SLASH ||
+               op == PERCENT)
+        {
+            search_next();
+            t2 = factor();
+            switch (t2.type)
+            {
+            case (var_double):
+                f2 = t2.U.d;
+                break;
+            }
+            switch (op)
+            {
+            case ASTRISK:
+                f1 = f1 * f2;
+                break;
+            case SLASH:
+                f1 = f1 / f2;
+                break;
+            case PERCENT:
+                f1 = (int)f1 % (int)f2;
+                break;
+            }
+            op = search_token();
+        }
+
+        t1.U.d = f1;
+        return t1;
+        break;
     }
 }
 
@@ -748,43 +775,44 @@ static VARIANT expr(void)
 {
     register double t1, t2;
     register CORE_DATA op;
-    VARIANT v1,v2;
+    VARIANT v1, v2;
 
     v1 = term();
-    switch(v1.type){
-        case(var_double):
+    switch (v1.type)
+    {
+    case (var_double):
         t1 = v1.U.d;
 
-    //printf("exprvalue : %g\n",t1);
-    op = search_token();
-    while (op == PLUS ||
-           op == MINUS ||
-           op == AND ||
-           op == OR)
-    {
-        search_next();
-        v2 = term();
-        t2 = v2.U.d;
-        switch (op)
-        {
-        case PLUS:
-            t1 = t1 + t2;
-            break;
-        case MINUS:
-            t1 = t1 - t2;
-            break;
-        case AND:
-            t1 = (int)t1 & (int)t2;
-            break;
-        case OR:
-            t1 = (int)t1 | (int)t2;
-            break;
-        }
+        //printf("exprvalue : %g\n",t1);
         op = search_token();
-    }
-    v1.U.d = t1;
-    return v1;
-            break;
+        while (op == PLUS ||
+               op == MINUS ||
+               op == AND ||
+               op == OR)
+        {
+            search_next();
+            v2 = term();
+            t2 = v2.U.d;
+            switch (op)
+            {
+            case PLUS:
+                t1 = t1 + t2;
+                break;
+            case MINUS:
+                t1 = t1 - t2;
+                break;
+            case AND:
+                t1 = (int)t1 & (int)t2;
+                break;
+            case OR:
+                t1 = (int)t1 | (int)t2;
+                break;
+            }
+            op = search_token();
+        }
+        v1.U.d = t1;
+        return v1;
+        break;
     }
 }
 
@@ -793,38 +821,38 @@ static double relation(void)
     register double t1, t2;
     register CORE_DATA op;
     int r1;
-    VARIANT v1,v2;
+    VARIANT v1, v2;
 
-     
     v1 = expr();
 
-    switch(v1.type){
-        case(var_double):
-        t1 = v1.U.d;
-    op = search_token();
-    while (op == LIGHTER ||
-           op == GREATER ||
-           op == EQUAL)
+    switch (v1.type)
     {
-        search_next();
-        v2 = expr();
-        t2 = v2.U.d;
-        switch (op)
-        {
-        case LIGHTER:
-            r1 = t1 < t2;
-            break;
-        case GREATER:
-            r1 = t1 > t2;
-            break;
-        case EQUAL:
-            r1 = t1 == t2;
-            break;
-        }
+    case (var_double):
+        t1 = v1.U.d;
         op = search_token();
-    }
-    return r1;
-            break;
+        while (op == LIGHTER ||
+               op == GREATER ||
+               op == EQUAL)
+        {
+            search_next();
+            v2 = expr();
+            t2 = v2.U.d;
+            switch (op)
+            {
+            case LIGHTER:
+                r1 = t1 < t2;
+                break;
+            case GREATER:
+                r1 = t1 > t2;
+                break;
+            case EQUAL:
+                r1 = t1 == t2;
+                break;
+            }
+            op = search_token();
+        }
+        return r1;
+        break;
     }
 }
 
@@ -970,7 +998,7 @@ static void return_handler(void)
 
 static void next_handler(void)
 {
-    char* var;
+    char *var;
 
     accept_token(K_NEXT);
     var = variable_now();
@@ -980,11 +1008,11 @@ static void next_handler(void)
     {
         VARIANT v = get_variable(var);
         double t0 = v.U.d;
-        v.U.d = t0+1; 
+        v.U.d = t0 + 1;
         int t = (int)t0;
-        
+
         set_variable(var,
-                         v);
+                     v);
         if (t <= for_stack[for_stack_ptr - 1].to)
         {
             jump_linenum(for_stack[for_stack_ptr - 1].line_after_for);
@@ -1003,7 +1031,7 @@ static void next_handler(void)
 
 static void for_handler(void)
 {
-    char * for_variable;
+    char *for_variable;
     int to;
 
     accept_token(K_FOR);
@@ -1012,7 +1040,7 @@ static void for_handler(void)
     accept_token(EQUAL);
     set_variable(for_variable, expr());
     accept_token(K_TO);
-    VARIANT v  = expr();
+    VARIANT v = expr();
     to = (int)v.U.d;
     accept_token(CR);
 
@@ -1037,8 +1065,8 @@ static void end_handler(void)
 
 static void peek_handler()
 {
-    char * var;
-    VARIANT  dst;
+    char *var;
+    VARIANT dst;
     accept_token(K_PEEK);
     var = variable_now();
     accept_token(VARIABLE);
@@ -1048,7 +1076,7 @@ static void peek_handler()
 }
 static void poke_handler()
 {
-    int * dst;
+    int *dst;
     VARIANT var;
 
     accept_token(K_POKE);
@@ -1173,7 +1201,8 @@ void set_variable(char *name, VARIANT value) //
             VAR_NAME v_n;
             VARIANT val;
             char value_str[MAX_NUMLEN];
-            //printf("value_to_set :%g\n",value);
+            //printf("name to set : %s\n",name);
+            //printf("value_to_set :%g\n",value.U.d);
             //val.type = var_double;
             val = value;
             v_n.name_ptr = var_mem_ptr;
@@ -1198,13 +1227,14 @@ void set_variable(char *name, VARIANT value) //
             strcpy(search_index[t].name, name);
             search_index[t].name_ptr = var_mem_ptr;
             var_mem[t] = val;
+            var_mem_ptr++;
         }
     }
 }
 
 VARIANT get_variable(char *name) //取出变量并返回
 {
-
+    //printf("get_name:%s\n",name );
     for (int i = 0; i < var_mem_ptr + 1; i++)
     {
 
@@ -1212,10 +1242,137 @@ VARIANT get_variable(char *name) //取出变量并返回
 
         if (a)
         {
-            int var_num_now = search_index[i].name_ptr;
+            int var_num_now = search_index[i+1].name_ptr;
             //printf("var_get : %g\n",var_mem[var_num_now].U.d);
             return var_mem[var_num_now];
         }
     }
     return empty;
+}
+
+double math_handler(OP_MATH name)
+{
+    double param1, param2, param3;
+    double result;
+    VARIANT v1, v2, v3;
+    /*SQRT = 1,EXP,POW,POWF,LOG,LN,SIN,COS,TAN,ARCSIN,ARCCOS,ARCTAN,SINH,CONSH,TANH,NOTHING*/
+
+    switch (name)
+    {
+    case(PI):
+        result = pi;
+        break;
+    case (SQRT):
+        accept_token(LEFTBRACKET);
+        v1 = expr();
+        result = sqrt(v1.U.d);
+        accept_token(RIGHTBRACKET);
+        break;
+
+    case (EXP):
+        accept_token(LEFTBRACKET);
+        v1 = expr();
+        result = exp(v1.U.d);
+        accept_token(RIGHTBRACKET);
+        break;
+
+    case (POW):
+        accept_token(LEFTBRACKET);
+        v1 = expr();
+        accept_token(COMMA);
+        v2 = expr();
+        result = pow(v1.U.d, (int)v2.U.d);
+        accept_token(RIGHTBRACKET);
+        break;
+
+    case (POWF):
+        accept_token(LEFTBRACKET);
+        v1 = expr();
+        accept_token(COMMA);
+        v2 = expr();
+        result = powf(v1.U.d, v2.U.d);
+        accept_token(RIGHTBRACKET);
+        break;
+        /*SQRT = 1,EXP,POW,POWF,LOG,LN,SIN,COS,TAN,ARCSIN,ARCCOS,ARCTAN,SINH,CONSH,TANH,NOTHING*/
+    case (LOG):
+        accept_token(LEFTBRACKET);
+        v1 = expr();
+        accept_token(COMMA);
+        v2 = expr();
+        result = log(v1.U.d, v2.U.d);
+        accept_token(RIGHTBRACKET);
+        break;
+
+    case (LN):
+        accept_token(LEFTBRACKET);
+        v1 = expr();
+        result = ln(v1.U.d);
+        accept_token(RIGHTBRACKET);
+        break;
+
+    case (SIN):
+        accept_token(LEFTBRACKET);
+        v1 = expr();
+        result = sin(v1.U.d);
+        accept_token(RIGHTBRACKET);
+        break;
+
+    case (COS):
+        accept_token(LEFTBRACKET);
+        v1 = expr();
+        result = cos(v1.U.d);
+        accept_token(RIGHTBRACKET);
+        break;
+
+    case (TAN):
+        accept_token(LEFTBRACKET);
+        v1 = expr();
+        result = tan(v1.U.d);
+        accept_token(RIGHTBRACKET);
+        break;
+
+    case (ARCTAN):
+        accept_token(LEFTBRACKET);
+        v1 = expr();
+        result = arctan(v1.U.d);
+        accept_token(RIGHTBRACKET);
+        break;
+
+    case (ARCSIN):
+        accept_token(LEFTBRACKET);
+        v1 = expr();
+        result = arcsin(v1.U.d);
+        accept_token(RIGHTBRACKET);
+        break;
+
+    case (ARCCOS):
+        accept_token(LEFTBRACKET);
+        v1 = expr();
+        result = arccos(v1.U.d);
+        accept_token(RIGHTBRACKET);
+        break;
+
+    case (SINH):
+        accept_token(LEFTBRACKET);
+        v1 = expr();
+        result = sinh(v1.U.d);
+        accept_token(RIGHTBRACKET);
+        break;
+
+    case (COSH):
+        accept_token(LEFTBRACKET);
+        v1 = expr();
+        result = cosh(v1.U.d);
+        accept_token(RIGHTBRACKET);
+        break;
+
+    case (TANH):
+        accept_token(LEFTBRACKET);
+        v1 = expr();
+        result = tanh(v1.U.d);
+        accept_token(RIGHTBRACKET);
+        break;
+    }
+
+    return result;
 }

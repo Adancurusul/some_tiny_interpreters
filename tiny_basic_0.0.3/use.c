@@ -4,10 +4,12 @@
 
 
 static  char program[] =
-"3 ia = 119.6+20\n\
-4 print ia-20\n\
-6 print ia*2/3-200\n\
-10 end";
+"30 ia = 119.6+20\n\
+40 print ia-20\n\
+45 t = 200\n\
+50 print t \n\
+60 print ia*2/3-200\n\
+100 end";
 /*
 "3 GOSUB 100\n\
 20 for i = 1 to 6\n\
@@ -76,4 +78,27 @@ int main(int argc, char *argv[])
         }
     }
 }
+*/
+
+/*
+
+
+
+float sqrt(float x);
+double eee(double x);
+double exp(double x);
+double pow(double a,int n);
+double powf(double a,double x);
+double log(double a,double N);
+double ln(double x);
+double sin(double x);
+double cos(double x);
+double tan(double x);
+double arcsin(double x);
+double arccos(double x);
+double arctan(double x);
+double sinh(double x);
+double cosh(double x);
+double tanh(double x);
+
 */

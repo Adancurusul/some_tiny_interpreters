@@ -8,7 +8,7 @@ version：0.0.3
 完成了一个基本的词法分析器对语句拆分
 代码量仅千行，但已经支持basic中let,print,if,then,else,for,to,next,goto,gosub,return,call,end
 peek ,poke语句
-并已支持四则整型运算。
+并已支持四则浮点运算。
 *******************************************************************************************
 使用只用传入程序的字符串数组到interpreter_init
 然后do_interpretation即可
@@ -22,8 +22,11 @@ interpreter_finished作为结束标志
 
 */
 
+//3.31在getnixttoken里面加东西
+
 #include <stdio.h> //printf
 #include "tiny_basic_interpreter.h"
+
 #define MAX_GOSUB_DEPTH 20
 #define MAX_STR_LENGTHSTR_LENGTH 50
 #define MAX_FOR_DEPTHMAX_FOR_DEPTH 6
@@ -529,7 +532,7 @@ void search_init(const char *program)
     token_now = get_next_token();
 }
 
-CORE_DATA search_token(void)
+CORE_DATA search_token(void)/////////////////////////////////////////
 {
     return token_now;
 }
@@ -1225,7 +1228,7 @@ VARIANT get_variable(char *name) //取出变量并返回
 
         if (a)
         {
-            int var_num_now = search_index[i].name_ptr;
+            int var_num_now = search_index[i+1].name_ptr;
             //printf("var_get : %g\n",var_mem[var_num_now].U.d);
             return var_mem[var_num_now];
         }

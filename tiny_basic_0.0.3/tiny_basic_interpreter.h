@@ -45,7 +45,7 @@ typedef enum
 void interpreter_init(char pro[]);
 void do_interpretation(void);
 int interpreter_finished(void);
-
+typedef unsigned long long size_t;
 typedef char STR[128];
 
 

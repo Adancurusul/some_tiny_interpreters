@@ -1,9 +1,9 @@
 OBJS= \
 tiny_basic_interpreter.o \
-malloc.o \
+#malloc.o \
 
 
-tiny_basic_interpreter.o: tiny_basic_interpreter.c
+tiny_basic_interpreter.o: tiny_basic_interpreter.c mymath.h
 	gcc -c $^
 use.o:use.c tiny_basic_interpreter.h
 	gcc -c use.c

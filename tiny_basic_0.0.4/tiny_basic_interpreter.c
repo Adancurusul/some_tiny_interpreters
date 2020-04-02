@@ -51,7 +51,7 @@ typedef struct for_state
 
 static VAR_NAME search_index[MAX_VARNUM];
 
-static VARIANT empty = {var_int, 0};
+static VARIANT empty = {var_null, 0};
 static VARIANT var_mem[MAX_VARNUM]; //储存变量
 int var_mem_ptr = 0;
 ///////////////////////////////////
@@ -82,7 +82,7 @@ int search_finished(void);
 ///////////////////////////////////////////////
 //////////////////////////////////////////////
 //下面是string的替代，如目标平台支持下面几个函数可去掉
-VARIANT get_variable(char *name);
+VARIANT get_variable(const char *name);
 int atoi(const char *src);
 void *memcpy(void *dest, const void *src, int count);
 char *strchr(char *str, const char c);
@@ -180,7 +180,9 @@ char *strcpy(char *strDest, const char *strSrc)
         return NULL;
     }
     p = strDest;
-    while ((*strDest++ = *strSrc++) != '\0')
+    while ((*strDest++ = *strSrc++) != '\0'){
+        //printf("ch\n");
+    }
         ;
     return p;
 }
@@ -234,6 +236,20 @@ unsigned int strlen(const char *str)
         str++;
     }
     return length;
+}
+
+char * strtrim(char *s) {
+    char *p = s;
+    char *q = s;
+    char *end = s;
+    while (*p==' ' || *p=='\t') ++p;
+    while (*q = *p) {
+        if (*q!=' ' && *q!='\t') end = q+1;
+        ++q, ++p;
+    }
+    *end = '\0';
+
+    return s;
 }
 
 ////////////////////////////////////////////
@@ -602,6 +618,7 @@ int search_finished(void)
 char *variable_now(void)
 {
     //return *ptr - 'a';
+    STR str_now;
     char *st;
     char *a;
     int i = 0;
@@ -618,11 +635,16 @@ char *variable_now(void)
         }
     }
     //printf("num of value %d\n",ptr-startptr);
-    memcpy(string, startptr, ptr - startptr);
+    //memcpy(str_now,0,50);//清空
+    memcpy(str_now, startptr, ptr - startptr);
+    str_now[ptr-startptr] = 0; 
     //printf("%c%c\n",*startptr ,*(startptr+1));
     //a = st;
-    //puts(string);
-    return string;
+    st = str_now;
+    printf("%c%c\n",st[0],st[1]);
+    //st = strtrim(st);
+    //st[ptr-startptr]=0;
+    return st;
 }
 /*
 char lower(char pro[]){
@@ -681,25 +703,43 @@ static void accept_token(int token)
 static VARIANT varfactor(void)
 {
     register double r;
+    
+    
+    //char  *str;
+
     VARIANT t;
-    char *st = variable_now();
-    //printf("return: st %s\n",st);
+
+    char const *st = variable_now();
+    
+    //STR str_ow;
+    printf("set_name_now:'%c%c'\n",st[0],st[1]);
     t = get_variable(st);
+    
+    if(t.type ==var_null){
+        printf("error :wrong variable");
+    }
     //printf("ooooaa%d\n",r);
 
     accept_token(VARIABLE);
     return t;
 }
-
+    //st[ptr-startptr] = '\0';
+    //strcpy(str,st);
+    //memcpy(str,st,ptr-startptr+1);
+    //sprintf(str,"%s",st);
+    //str[ptr-startptr] = 0;
+    //printf("set_name_now:'%s'\n",st);
+    //printf("return: st %s\n",str_ow);
 static VARIANT factor(void)
 {
     register double r;
     double math_ret;
     int type;
     VARIANT t;
-    
+    //puts("\ninside\n");
     switch (search_token())
     {
+        
     case NUMBER:
         r = search_num();
         type = var_double;
@@ -889,6 +929,7 @@ static void print_handler(void)
     accept_token(K_PRINT);
     do
     {
+        
         if (search_token() == STRING)
         {
             search_string(string, sizeof(string));
@@ -897,6 +938,7 @@ static void print_handler(void)
         }
         else if (search_token() == COMMA)
         {
+            
             printf(" ");
             search_next();
         }
@@ -907,6 +949,7 @@ static void print_handler(void)
         else if (search_token() == VARIABLE ||
                  search_token() == NUMBER)
         {
+            //printf("getit");
             printf("%g", expr().U.d);
         }
         else
@@ -1037,21 +1080,27 @@ static void for_handler(void)
 {
     char *for_variable;
     int to;
+    STR for_v;
 
     accept_token(K_FOR);
     for_variable = variable_now();
+    strcpy(for_v,for_variable);
+    //printf("for_now:%s\n",for_v);
     accept_token(VARIABLE);
     accept_token(EQUAL);
-    set_variable(for_variable, expr());
+    VARIANT t = expr();
+    //printf("for_now:%s.expr:%g\n",for_v,t.U.d);
+    set_variable(for_v, t);
     accept_token(K_TO);
     VARIANT v = expr();
+    //printf("to:%g\n",v.U.d);
     to = (int)v.U.d;
     accept_token(CR);
 
     if (for_stack_ptr < MAX_FOR_DEPTHMAX_FOR_DEPTH)
     {
         for_stack[for_stack_ptr].line_after_for = (int)search_num();
-        for_stack[for_stack_ptr].for_variable = for_variable;
+        for_stack[for_stack_ptr].for_variable = for_v;
         for_stack[for_stack_ptr].to = to;
 
         for_stack_ptr++;
@@ -1205,8 +1254,8 @@ void set_variable(char * name, VARIANT value) //
             VAR_NAME v_n;
             VARIANT val;
             char value_str[MAX_NUMLEN];
-            //printf("valuename :%s and ",name);
-            //printf("value_to_set :%g\n",value.U.d);
+            printf("valuename :%s and ",name);
+            printf("value_to_set :%g\n",value.U.d);
             //val.type = var_double;
             val = value;
             v_n.name_ptr = var_mem_ptr;
@@ -1235,19 +1284,24 @@ void set_variable(char * name, VARIANT value) //
     }
 }
 
-VARIANT get_variable(char *name) //取出变量并返回
+VARIANT get_variable(const char *name) //取出变量并返回
 {
 
     for (int i = 0; i < var_mem_ptr + 1; i++)
     {
+//printf("/////\nnow ::::%g\nnext:::%g\nnenext::%g\n////////\n",
+//var_mem[search_index[i].name_ptr].U.d,var_mem[search_index[i+1].name_ptr].U.d,var_mem[search_index[i+2].name_ptr].U.d);
+        printf("namenow: '%c%c' \nname search:'%s'",name[0],name[1],search_index[i].name);
+        int a = strcmp(name, search_index[i].name);
 
-        int a = strcmp(name, search_index[i+1].name);
-
-        if (a)
+        if (!a)
         {
-            int var_num_now = search_index[i+1].name_ptr;
-            //printf("var_get : %g\n",var_mem[var_num_now].U.d);
+            int var_num_now = search_index[i].name_ptr;
+            printf("var_get : %g\n",var_mem[var_num_now].U.d);
             return var_mem[var_num_now];
+        }
+        else {
+            printf("\nnothing\n");
         }
     }
     return empty;

@@ -8,6 +8,7 @@
 v0.0.1只支持整数，且仅有26个英文字母做变量
 v0.0.2也是只能支持整数，但是可以以任意c语言格式变量名命名
 v0.0.3支持双精度浮点运算
+v0.0.4支持pow,powf,sqrt,exp,log,ln,sin,cos,tan,arctan,artsin,arccos,sinh,consh,tanh等math库运算
 
 
 有疑问或建议可以联系

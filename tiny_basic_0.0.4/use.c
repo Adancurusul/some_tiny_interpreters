@@ -6,7 +6,7 @@
 static  char program[] =
 "3 iaa = pow(2,3)\n\
 50 t = sqrt(iaa*3)\n\
-60 print \"sqrt(pow(2,3)*3) is:\",t\n\
+60 print \"sqrt(pow(2,3)*3) is:\",t+20\n\
 100 end";
 /*
 "30 ia = 119.6+20\n\
@@ -29,7 +29,7 @@ static  char program[] =
 110 return\n";*/
 
 
-
+/*
 int main(void)
 {
   interpreter_init(program);
@@ -39,16 +39,16 @@ int main(void)
   } while(!interpreter_finished());
 while(1){}
   return 0;
-}
+}*/
 
-/*
+
 #define MAXLENGTH 1000
 int main(int argc, char *argv[])
 {
     if (argc > 1)
     {
         char dest[MAXLENGTH];
-
+        memset(dest,0,MAXLENGTH);
         FILE *file;
         int pos, temp, i;
         file = fopen(argv[1], "r");
@@ -66,6 +66,9 @@ int main(int argc, char *argv[])
             temp = fgetc(file);
             if (EOF == temp)
                 break;
+            if(temp=='\r'){
+              temp = ' ';
+            }
             dest[pos++] = temp;
         }
         //关闭文件
@@ -78,9 +81,6 @@ int main(int argc, char *argv[])
         {
             do_interpretation();
         } while (!interpreter_finished());
-        while (1)
-        {
-        }
+        
     }
 }
-*/

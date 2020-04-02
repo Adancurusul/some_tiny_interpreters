@@ -1,0 +1,7 @@
+3 ia= pow(2,3)
+50 t = sqrt(ia * 3)
+60 print "sqrt(pow(2,3)*3) is:",t*pow(2,3)
+61 for i = 1 to 6
+70 print "for test",i*exp(3)
+80 next i
+100 end

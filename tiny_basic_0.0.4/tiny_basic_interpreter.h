@@ -88,7 +88,7 @@ typedef struct
 
 typedef struct varname
 {
-    STR name;
+    STR name ;
     int name_ptr;
 } VAR_NAME;
 

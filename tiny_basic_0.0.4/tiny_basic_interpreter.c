@@ -42,7 +42,7 @@ static char const *program_ptr, *ptr, *nextptr, *startptr;
 typedef struct for_state
 {
     int line_after_for;
-    char *for_variable;
+    STR for_variable;
     int to;
 } FOR_STATE;
 
@@ -1058,24 +1058,26 @@ static void return_handler(void)
 
 static void next_handler(void)
 {
-    char *var;
+    STR var;
     
     accept_token(K_NEXT);
-    var = variable_now();
+    strcpy(var,variable_now());
+    //printf("%d::::%d\n",strlen(var),strlen(for_stack[for_stack_ptr - 1].for_variable));
     accept_token(VARIABLE);
-    //printf("var:'%s'  forv:'%s'",var,for_stack[for_stack_ptr - 1].for_variable);
     if (for_stack_ptr > 0 &&
-        var == for_stack[for_stack_ptr - 1].for_variable)
+        !strcmp(var, for_stack[for_stack_ptr - 1].for_variable))
     {
-        printf("into");
+        //printf("into");
         VARIANT v = get_variable(var);
+        
         double t0 = v.U.d;
         v.U.d = t0 + 1;
+        //printf("varfor:'%g'\n",v.U.d);
         int t = (int)t0;
 
-        set_variable(var,
-                     v);
-        if (t <= for_stack[for_stack_ptr - 1].to)
+        set_variable(var,v);
+        //printf("varforend:'%g'\n",v.U.d);
+        if (t <= for_stack[for_stack_ptr - 1].to-1)
         {
             jump_linenum(for_stack[for_stack_ptr - 1].line_after_for);
         }
@@ -1104,18 +1106,23 @@ static void for_handler(void)
     accept_token(VARIABLE);
     accept_token(EQUAL);
     VARIANT t = expr();
-    //printf("for_now:%s.expr:%g\n",for_v,t.U.d);
+    
     set_variable(for_v, t);
+    
     accept_token(K_TO);
     VARIANT v = expr();
     //printf("to:%g\n",v.U.d);
     to = (int)v.U.d;
     accept_token(CR);
-
+    
     if (for_stack_ptr < MAX_FOR_DEPTHMAX_FOR_DEPTH)
     {
         for_stack[for_stack_ptr].line_after_for = (int)search_num();
-        for_stack[for_stack_ptr].for_variable = for_v;
+        //printf("now:%g\n",search_num());
+        
+
+        strcpy(for_stack[for_stack_ptr].for_variable,for_v) ;
+        //printf("now:var: \"%s\"'%s'",for_v,for_stack[for_stack_ptr].for_variable);
         for_stack[for_stack_ptr].to = to;
 
         for_stack_ptr++;
@@ -1247,15 +1254,24 @@ int interpreter_finished(void)
 
 int if_variable_existed(char *name) //判断变量是否已经存在
 {
-    for (int i = 0; i < var_mem_ptr + 1; i++)
+
+    for (int i = 0; i < var_mem_ptr ; ++i)
     {
-        if (strcmp(name, search_index[i].name))
+  
+       
+        if (!strcmp(name, search_index[i].name))
         {
+            //printf("indexnow:%d,namenow:%s,ptrnow:%d\n",i,search_index[i].name,search_index[i].name_ptr);
             int var_num_now = search_index[i].name_ptr;
+            //printf("\n,%s,%s,%s,%s\n", search_index[0].name, search_index[1].name, search_index[2].name, search_index[3].name);
+            //printf("\nxiagntong :%s,%d\n",name,var_num_now);
             return var_num_now;
+            
         }
+        
     }
-    return 1013;
+    
+    return -1;
 }
 
 void set_variable(char * name, VARIANT value) //
@@ -1264,7 +1280,8 @@ void set_variable(char * name, VARIANT value) //
     //printf("input val:%g\n",value.U.d);
     {
         int t = if_variable_existed(name); //变量是否已经存在
-        if (t != 1013)
+        //printf("tnow:%d",t);
+        if (t == -1)
         {
             VAR_NAME v_n;
             VARIANT val;
@@ -1274,27 +1291,36 @@ void set_variable(char * name, VARIANT value) //
             //val.type = var_double;
             val = value;
             v_n.name_ptr = var_mem_ptr;
+            //printf("ptr %d\n" ,v_n.name_ptr);
             //itoa(value, value_str, 10);
             //search_index[var_mem_ptr].name=name;
             strcpy(search_index[var_mem_ptr].name, name);
             search_index[var_mem_ptr].name_ptr = var_mem_ptr;
             var_mem[var_mem_ptr] = val;
+            // printf("now i :%d\n",var_mem_ptr);
+            //printf("\nthings:%g,%g,%g,%g,%g\n",var_mem[0].U.d,var_mem[1].U.d,var_mem[2].U.d,var_mem[3].U.d);
             var_mem_ptr++;
         }
         else
         {
+            
             VAR_NAME v_n;
             VARIANT val;
             char value_str[MAX_NUMLEN];
 
             //val.type = var_double;
             val = value;
+            //printf("\nnow val :%d\n",val.U.d);
             v_n.name_ptr = t;
+            //printf("\nt:%d\n",t);
             //itoa(value, value_str, 10);
             //search_index[var_mem_ptr].name=name;
             strcpy(search_index[t].name, name);
-            search_index[t].name_ptr = var_mem_ptr;
+            //search_index[t].name_ptr = var_mem_ptr;
             var_mem[t] = val;
+            // printf("now i :%d\n",var_mem_ptr);
+            //printf("now giaogiao :%g,t:%d\n",var_mem[t].U.d,t);
+            //printf("\nthings:%g,%g,%g,%g,%g\n",var_mem[0].U.d,var_mem[1].U.d,var_mem[2].U.d,var_mem[3].U.d);
         }
     }
 }
@@ -1313,13 +1339,14 @@ name = string;
         if (!a)
         {
             int var_num_now = search_index[i].name_ptr;
-            //printf("var_get : %g\n",var_mem[var_num_now].U.d);
+            //printf("var_get : %g  type: %d\n",var_mem[var_num_now].U.d,var_mem[var_num_now].type);
             return var_mem[var_num_now];
         }
         else {
             //printf("\nnothing\n");
         }
     }
+    //printf("\n\nempty:%s\n",string);
     return empty;
 }
 

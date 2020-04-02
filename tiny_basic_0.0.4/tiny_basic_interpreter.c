@@ -82,7 +82,7 @@ int search_finished(void);
 ///////////////////////////////////////////////
 //////////////////////////////////////////////
 //下面是string的替代，如目标平台支持下面几个函数可去掉
-VARIANT get_variable(const char *name);
+VARIANT get_variable( char *name);
 int atoi(const char *src);
 void *memcpy(void *dest, const void *src, int count);
 char *strchr(char *str, const char c);
@@ -92,7 +92,17 @@ int strncmp(const char *str1, const char *str2, int count);
 int strcmp(const char *str1, const char *str2);
 char *itoa(int num, char *str, int radix);
 char *strcpy(char *strDest, const char *strSrc);
-
+void* memset(void* dst,int val, int count);
+void* memset(void* dst,int val, int count)
+{
+    void* ret = dst;
+    while(count--)
+    {
+        *(char*)dst = (char)val;
+        dst = (char*)dst + 1; 
+    }
+    return ret;
+}
 char *itoa(int num, char *str, int radix)
 {
     char index[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"; //索引表
@@ -618,7 +628,7 @@ int search_finished(void)
 char *variable_now(void)
 {
     //return *ptr - 'a';
-    STR str_now;
+    //STR str_now;
     char *st;
     char *a;
     int i = 0;
@@ -636,12 +646,15 @@ char *variable_now(void)
     }
     //printf("num of value %d\n",ptr-startptr);
     //memcpy(str_now,0,50);//清空
-    memcpy(str_now, startptr, ptr - startptr);
-    str_now[ptr-startptr] = 0; 
+    
+    memset(string,0,MAX_VARNUM);
+    memcpy(string, startptr, ptr - startptr);
+    //str_now[ptr-startptr] = 0; 
     //printf("%c%c\n",*startptr ,*(startptr+1));
     //a = st;
-    st = str_now;
-    printf("%c%c\n",st[0],st[1]);
+    //st = str_now;
+    st = string;
+    //printf("strnow:'%s'\n",st);
     //st = strtrim(st);
     //st[ptr-startptr]=0;
     return st;
@@ -712,8 +725,8 @@ static VARIANT varfactor(void)
     char const *st = variable_now();
     
     //STR str_ow;
-    printf("set_name_now:'%c%c'\n",st[0],st[1]);
-    t = get_variable(st);
+    //printf("set_name_now:'%s'\n",string);
+    t = get_variable(string);
     
     if(t.type ==var_null){
         printf("error :wrong variable");
@@ -1046,13 +1059,15 @@ static void return_handler(void)
 static void next_handler(void)
 {
     char *var;
-
+    
     accept_token(K_NEXT);
     var = variable_now();
     accept_token(VARIABLE);
+    //printf("var:'%s'  forv:'%s'",var,for_stack[for_stack_ptr - 1].for_variable);
     if (for_stack_ptr > 0 &&
         var == for_stack[for_stack_ptr - 1].for_variable)
     {
+        printf("into");
         VARIANT v = get_variable(var);
         double t0 = v.U.d;
         v.U.d = t0 + 1;
@@ -1254,8 +1269,8 @@ void set_variable(char * name, VARIANT value) //
             VAR_NAME v_n;
             VARIANT val;
             char value_str[MAX_NUMLEN];
-            printf("valuename :%s and ",name);
-            printf("value_to_set :%g\n",value.U.d);
+            //printf("valuename :%s and ",name);
+            //printf("value_to_set :%g\n",value.U.d);
             //val.type = var_double;
             val = value;
             v_n.name_ptr = var_mem_ptr;
@@ -1284,24 +1299,25 @@ void set_variable(char * name, VARIANT value) //
     }
 }
 
-VARIANT get_variable(const char *name) //取出变量并返回
+VARIANT get_variable(char *name) //取出变量并返回
 {
-
+name = string;
+//printf("hello\n");
     for (int i = 0; i < var_mem_ptr + 1; i++)
     {
 //printf("/////\nnow ::::%g\nnext:::%g\nnenext::%g\n////////\n",
 //var_mem[search_index[i].name_ptr].U.d,var_mem[search_index[i+1].name_ptr].U.d,var_mem[search_index[i+2].name_ptr].U.d);
-        printf("namenow: '%c%c' \nname search:'%s'",name[0],name[1],search_index[i].name);
+        //printf("namenow: '%s' \nname search:'%s'",name,search_index[i].name);
         int a = strcmp(name, search_index[i].name);
 
         if (!a)
         {
             int var_num_now = search_index[i].name_ptr;
-            printf("var_get : %g\n",var_mem[var_num_now].U.d);
+            //printf("var_get : %g\n",var_mem[var_num_now].U.d);
             return var_mem[var_num_now];
         }
         else {
-            printf("\nnothing\n");
+            //printf("\nnothing\n");
         }
     }
     return empty;

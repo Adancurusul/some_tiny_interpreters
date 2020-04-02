@@ -70,7 +70,6 @@ NOTHING
 typedef enum
 {
     var_null = 0,
-    var_int,
     var_double,
     var_string
 } variant_type;

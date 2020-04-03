@@ -8,7 +8,7 @@ Here list some platforms that has already support :<u>
 
 gd32vf103(riscv) ,stm32(arm) ,stc89c52(8051) ,k210(riscv) ,prv332(riscv) and all platforms with ,linux mac win system</u>  
 
-By the way ,that brainfuck interpreter was just written for fun,I don't think anyone would be glad to write it(really not made for people)
+By the way ,that brainfuck interpreter was just  for fun,I don't think anyone would be glad to write it(really not made for people)
 
 ## How to port it to your device
 

@@ -4,7 +4,7 @@ This project offers two very portable language interpreters :one is basic ,the o
 
 The interpreters can be poted to any platform and  take up very little memory ,__only need to support "printf"function and c language compiler.__  
 
-Here list some platforms that has already support :<u>  
+Here list some platforms that has already support : <u>  
 
 gd32vf103(riscv) ,stm32(arm) ,stc89c52(8051) ,k210(riscv) ,prv332(riscv) and all platforms with ,linux mac win system</u>  
 

@@ -12,7 +12,7 @@ By the way ,that brainfuck interpreter was just  for fun,I don't think anyone wo
 
 ## How to port it to your device
 
-To be updated
+>Firstly you platform need to support printf and c language compiler.Then you need to change your code into array(any way is ok we just want an array of code).You can refer to the ___use.c___ .It's necessay to init interpreter by using your code array as a parameter of ___interpreter_init(code_array)___ .At last ,just call ___do_interpretation();___ ,the ___interpreter_finished()___ function returns 1 when the interpreter  end.
 ## The syntax of this programming language
 
 

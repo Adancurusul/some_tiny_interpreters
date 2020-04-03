@@ -2,12 +2,12 @@
 #include <stdio.h>
 
 
-
+/*
 static  char program[] =
 "3 iaa = pow(2,3)\n\
 50 t = sqrt(iaa*3)\n\
 60 print \"sqrt(pow(2,3)*3) is:\",t+20\n\
-100 end";
+100 end";*/
 /*
 "30 ia = 119.6+20\n\
 40 print ia-20\n\

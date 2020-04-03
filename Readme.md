@@ -25,8 +25,8 @@ For 0.0.4 we can use _pow,powf,sqrt,exp,log,ln,sin,cos,tan,arctan,artsin,arccos,
 ## Updates
 
 >v0.0.1 :Only integers are supported, and only 26 English letters are used as variables  
-v0.0.2 :Only support integers, but it can be named in any C language variable name  
-v0.0.3 :Supports double-precision floating-point arithmetic  
+v0.0.2 :Only support integers, but it can be named in any C language variable name(a lot of bugs  )  
+v0.0.3 :Supports double-precision floating-point arithmetic (a lot of bugs  )  
 v0.0.4 :Supports pow,powf,sqrt,exp,log,ln,sin,cos,tan,arctan,artsin,arccos,sinh,consh,tanh math library operation
 
 

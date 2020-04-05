@@ -68,12 +68,12 @@ void *malloc(unsigned nbytes)
 
     if (nbytes == 0)
     {
-        alloc_printf("参数非法!\r\n");
+        alloc_printf("illegal parameter\n");
         return NULL;
     }
     if (mem_init_flag < 0)
     {
-        alloc_printf("未初始化,先初始化.\r\n");
+        alloc_printf("please initialize first\n");
         mem_init();
     }
 

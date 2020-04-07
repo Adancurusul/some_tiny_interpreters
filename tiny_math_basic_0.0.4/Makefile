@@ -12,4 +12,4 @@ malloc.o:malloc.c malloc.h
 run:use.o $(OBJS)
 	gcc -o $@ $^
 
-all: use.o tiny_basic_interpreter.o run
+all: use.o tiny_basic_interpreter.o run 

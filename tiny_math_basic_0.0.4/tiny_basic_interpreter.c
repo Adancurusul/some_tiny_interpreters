@@ -960,7 +960,7 @@ static void print_handler(void)
                  search_token() == NUMBER)
         {
             //MY_PRINT("getit");
-            MY_PRINT("%g", expr().U.d);
+            MY_PRINT("%f", expr().U.d);
         }
         else
         {

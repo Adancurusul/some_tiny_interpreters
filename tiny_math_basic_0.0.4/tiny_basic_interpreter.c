@@ -3,14 +3,13 @@ author : Adancurusul
 email  :chen.yuheng@nexuslink.cn
 version：0.0.4   2020/4/8
 介绍：
-这是一个可以嵌入任何只要支持printf函数的系统或单片机中的类basic语言解释器；
+这是一个可以嵌入任何只要支持printf函数的系统或单片机中的基于basic语法扩展了数学方面使用和移植性的语言解释器；
 内存开销也极小
 完成了一个基本的词法分析器对语句拆分
 代码量仅千行，但已经支持basic中let,print,if,then,else,for,to,next,goto,gosub,return,call,end
 peek ,poke语句
-并已支持四则运算。
 0.0.4新增pow,powf,sqrt,exp,log,ln,sin,cos,tan,arctan,artsin,arccos,sinh,consh,tanh
-    库及其综合运算（见use.c（3 iaa = pow(2,3)\n50 t = sqrt(iaa*3)\n60 print \"sqrt(pow(2,3)*3) is:\",t+20\n）
+库及其综合运算（见use.c（3 iaa = pow(2,3)\n50 t = sqrt(iaa*3)\n60 print \"sqrt(pow(2,3)*3) is:\",t+20\n）
 *******************************************************************************************
 使用只用传入程序的字符串数组到interpreter_init
 然后do_interpretation即可
@@ -24,16 +23,29 @@ interpreter_finished作为结束标志
 
 */
 
-#include <stdio.h> //printf
+
+/////
+#define  MY_PRINT(...) printf(__VA_ARGS__) //如果目标平台通过其他方式输出，修改此行
+/////
+
+
+
+
+#include <stdio.h> //MY_PRINT
 #include "mymath.h"
 #include "tiny_basic_interpreter.h"
 #define MAX_GOSUB_DEPTH 20//gosub 语句最多20次嵌套
 #define MAX_STR_LENGTHSTR_LENGTH 50//string长度最多50字节
 #define MAX_FOR_DEPTHMAX_FOR_DEPTH 6//for循环最多嵌套次数5
-#define MAX_VARNUM 261 //最多储存261个变量（比原版basic多1（个人喜好 
+#define MAX_VARNUM 40 //最多储存40个变量
 #define MAX_NUMLEN 20  //number最大长度
 #define isdigit(c) ((c) >= '0' && (c) <= '9') //检测是否是数字
 #define CHANGE_LOWER 'A' - 'a'  //大写转小写
+
+/////
+//#define  MY_PRINT(...) printf(__VA_ARGS__) //如果目标平台通过其他方式输出，修改此行
+/////
+
 
 static char string[MAX_STR_LENGTHSTR_LENGTH]; //全局字符串，为防止指针滥用造成内存问题部分参数使用这个传递
 static int gosub_stack[MAX_GOSUB_DEPTH]; //gosub的栈
@@ -176,7 +188,7 @@ char *strcpy(char *strDest, const char *strSrc)
     }
     p = strDest;
     while ((*strDest++ = *strSrc++) != '\0'){
-        //printf("ch\n");
+        //MY_PRINT("ch\n");
     }
         ;
     return p;
@@ -468,12 +480,12 @@ static CORE_DATA get_next_token(void) //词法分析器核心部分：词法拆�
                     if (i > 0)
                     {
                         nextptr = ptr + i;
-                        //printf("numbernow :%d\n",ptr[i]);
+                        //MY_PRINT("numbernow :%d\n",ptr[i]);
                         return NUMBER;
                     }
                     else
                     {
-                        printf("get_next_token: error due to too short number\n");
+                        MY_PRINT("get_next_token: error due to too short number\n");
                         return ERROR;
                     }
                 }
@@ -482,12 +494,12 @@ static CORE_DATA get_next_token(void) //词法分析器核心部分：词法拆�
             {
                 if (ptr[i] != '.')
                 {
-                    printf("get_next_token: error due to malformed number\n");
+                    MY_PRINT("get_next_token: error due to malformed number\n");
                     return ERROR;
                 }
             }
         }
-        printf("get_next_token: error due to too long number\n");
+        MY_PRINT("get_next_token: error due to too long number\n");
         return ERROR;
     }
     else if (if_one_char())//单个字符
@@ -533,7 +545,7 @@ static CORE_DATA get_next_token(void) //词法分析器核心部分：词法拆�
     {
         status = 1;
         nextptr = ptr + 1;
-        //printf("%c:ptrnow\n",*ptr);
+        //MY_PRINT("%c:ptrnow\n",*ptr);
         ++ptr;
     }
     if (status)
@@ -602,7 +614,7 @@ void search_string(char *dest, int len)//查找字符串
 
 void search_error_print(void)
 {
-    printf("search_error_print: '%s'\n", ptr);
+    MY_PRINT("search_error_print: '%s'\n", ptr);
 }
 
 int search_finished(void)
@@ -617,29 +629,29 @@ char *variable_now(void)
     char *st;
     char *a;
     int i = 0;
-    //printf("%c:start\n",*startptr);
+    //MY_PRINT("%c:start\n",*startptr);
     while ('a' <= *ptr && 'z' >= *ptr)
     {
-        //printf("before%c",*ptr);
+        //MY_PRINT("before%c",*ptr);
         if (*ptr != ' ')
         {
-            //printf("%c:now",*ptr);
+            //MY_PRINT("%c:now",*ptr);
             st[i] = *ptr;
             i++;
             ++ptr;
         }
     }
-    //printf("num of value %d\n",ptr-startptr);
+    //MY_PRINT("num of value %d\n",ptr-startptr);
     //memcpy(str_now,0,50);//清空
     
     memset(string,0,MAX_VARNUM);
     memcpy(string, startptr, ptr - startptr);
     //str_now[ptr-startptr] = 0; 
-    //printf("%c%c\n",*startptr ,*(startptr+1));
+    //MY_PRINT("%c%c\n",*startptr ,*(startptr+1));
     //a = st;
     //st = str_now;
     st = string;
-    //printf("strnow:'%s'\n",st);
+    //MY_PRINT("strnow:'%s'\n",st);
     //st = strtrim(st);
     //st[ptr-startptr]=0;
     return st;
@@ -648,14 +660,14 @@ char *variable_now(void)
 char lower(char pro[]){
     
     int length = strlen(pro);
-    printf("%d\n",length);
+    MY_PRINT("%d\n",length);
     
     for (int i=0;i<length;i++){
         if (pro[i]>='A'&&pro[i]<='Z'){
             pro[i] += CHANGE_LOWER;
         }
     }
-    printf("%s",pro);
+    MY_PRINT("%s",pro);
     char *p = pro;
     return pro;
 
@@ -664,24 +676,24 @@ char lower(char pro[]){
 void interpreter_init(char pro[])
 {
     register int length = strlen(pro);
-    //printf("%d\n",length);
+    //MY_PRINT("%d\n",length);
 
     for (int i = 0; i < length; i++)
     {
         if (pro[i] >= 'A' && pro[i] <= 'Z')
         {
             pro[i] -= CHANGE_LOWER;
-            //printf("%c",pro[i]);
+            //MY_PRINT("%c",pro[i]);
             //while (1){
 
             //}
         }
     }
-    //printf("%s",pro);
+    //MY_PRINT("%s",pro);
     char *program = pro;
 
     //char *program = pro;
-    //printf("the%s",program);
+    //MY_PRINT("the%s",program);
     program_ptr = program;
     for_stack_ptr = gosub_stack_ptr = 0;
     search_init(program);
@@ -694,7 +706,7 @@ static void accept_token(int token)
     {
         search_error_print();
     }
-    //printf("token%d\n",token);
+    //MY_PRINT("token%d\n",token);
     search_next();
 }
 
@@ -710,13 +722,13 @@ static VARIANT varfactor(void)
     char const *st = variable_now();
     
     //STR str_ow;
-    //printf("set_name_now:'%s'\n",string);
+    //MY_PRINT("set_name_now:'%s'\n",string);
     t = get_variable(string);
     
     if(t.type ==var_null){
-        printf("error :wrong variable");
+        MY_PRINT("error :wrong variable");
     }
-    //printf("ooooaa%d\n",r);
+    //MY_PRINT("ooooaa%d\n",r);
 
     accept_token(VARIABLE);
     return t;
@@ -724,10 +736,10 @@ static VARIANT varfactor(void)
     //st[ptr-startptr] = '\0';
     //strcpy(str,st);
     //memcpy(str,st,ptr-startptr+1);
-    //sprintf(str,"%s",st);
+    //sMY_PRINT(str,"%s",st);
     //str[ptr-startptr] = 0;
-    //printf("set_name_now:'%s'\n",st);
-    //printf("return: st %s\n",str_ow);
+    //MY_PRINT("set_name_now:'%s'\n",st);
+    //MY_PRINT("return: st %s\n",str_ow);
 static VARIANT factor(void)
 {
     register double r;
@@ -760,7 +772,7 @@ static VARIANT factor(void)
         t = varfactor();
         break;
     }
-    // printf("thenum :%g\n",r);
+    // MY_PRINT("thenum :%g\n",r);
     return t;
 }
 
@@ -776,7 +788,7 @@ static VARIANT term(void)
     case (var_double):
         f1 = t1.U.d;
 
-        //printf("value in term:%g\n",f1);
+        //MY_PRINT("value in term:%g\n",f1);
         op = search_token();
         while (op == ASTRISK ||
                op == SLASH ||
@@ -823,7 +835,7 @@ static VARIANT expr(void)
     case (var_double):
         t1 = v1.U.d;
 
-        //printf("exprvalue : %g\n",t1);
+        //MY_PRINT("exprvalue : %g\n",t1);
         op = search_token();
         while (op == PLUS ||
                op == MINUS ||
@@ -931,13 +943,13 @@ static void print_handler(void)
         if (search_token() == STRING)
         {
             search_string(string, sizeof(string));
-            printf("%s", string);
+            MY_PRINT("%s", string);
             search_next();
         }
         else if (search_token() == COMMA)
         {
             
-            printf(" ");
+            MY_PRINT(" ");
             search_next();
         }
         else if (search_token() == SEMICOLON)
@@ -947,8 +959,8 @@ static void print_handler(void)
         else if (search_token() == VARIABLE ||
                  search_token() == NUMBER)
         {
-            //printf("getit");
-            printf("%g", expr().U.d);
+            //MY_PRINT("getit");
+            MY_PRINT("%g", expr().U.d);
         }
         else
         {
@@ -956,7 +968,7 @@ static void print_handler(void)
         }
     } while (search_token() != CR &&
              search_token() != ENDINPUT);
-    printf("\n");
+    MY_PRINT("\n");
     search_next();
 }
 
@@ -998,13 +1010,13 @@ static void let_handler(void)
 STR s_now ;
     char *st_now = variable_now();
      strcpy(s_now ,st_now);
-    //printf("varnum:%s and ",s_now);
+    //MY_PRINT("varnum:%s and ",s_now);
 
     accept_token(VARIABLE);
     accept_token(EQUAL);
     var = expr();
-    //printf("varnum:%s and ",s_now);
-    //printf("valuenum:%g\n", var.U.d);
+    //MY_PRINT("varnum:%s and ",s_now);
+    //MY_PRINT("valuenum:%g\n", var.U.d);
     set_variable(s_now, var);
     accept_token(CR);
 }
@@ -1021,7 +1033,7 @@ static void gosub_handler(void)
         gosub_stack[gosub_stack_ptr] = search_num();
         gosub_stack_ptr++;
         jump_linenum(linenum);
-        //printf("jump");
+        //MY_PRINT("jump");
     }
     else
     {
@@ -1047,21 +1059,21 @@ static void next_handler(void)
     
     accept_token(K_NEXT);
     strcpy(var,variable_now());
-    //printf("%d::::%d\n",strlen(var),strlen(for_stack[for_stack_ptr - 1].for_variable));
+    //MY_PRINT("%d::::%d\n",strlen(var),strlen(for_stack[for_stack_ptr - 1].for_variable));
     accept_token(VARIABLE);
     if (for_stack_ptr > 0 &&
         !strcmp(var, for_stack[for_stack_ptr - 1].for_variable))
     {
-        //printf("into");
+        //MY_PRINT("into");
         VARIANT v = get_variable(var);
         
         double t0 = v.U.d;
         v.U.d = t0 + 1;
-        //printf("varfor:'%g'\n",v.U.d);
+        //MY_PRINT("varfor:'%g'\n",v.U.d);
         int t = (int)t0;
 
         set_variable(var,v);
-        //printf("varforend:'%g'\n",v.U.d);
+        //MY_PRINT("varforend:'%g'\n",v.U.d);
         if (t <= for_stack[for_stack_ptr - 1].to-1)
         {
             jump_linenum(for_stack[for_stack_ptr - 1].line_after_for);
@@ -1087,7 +1099,7 @@ static void for_handler(void)
     accept_token(K_FOR);
     for_variable = variable_now();
     strcpy(for_v,for_variable);
-    //printf("for_now:%s\n",for_v);
+    //MY_PRINT("for_now:%s\n",for_v);
     accept_token(VARIABLE);
     accept_token(EQUAL);
     VARIANT t = expr();
@@ -1096,18 +1108,18 @@ static void for_handler(void)
     
     accept_token(K_TO);
     VARIANT v = expr();
-    //printf("to:%g\n",v.U.d);
+    //MY_PRINT("to:%g\n",v.U.d);
     to = (int)v.U.d;
     accept_token(CR);
     
     if (for_stack_ptr < MAX_FOR_DEPTHMAX_FOR_DEPTH)
     {
         for_stack[for_stack_ptr].line_after_for = (int)search_num();
-        //printf("now:%g\n",search_num());
+        //MY_PRINT("now:%g\n",search_num());
         
 
         strcpy(for_stack[for_stack_ptr].for_variable,for_v) ;
-        //printf("now:var: \"%s\"'%s'",for_v,for_stack[for_stack_ptr].for_variable);
+        //MY_PRINT("now:var: \"%s\"'%s'",for_v,for_stack[for_stack_ptr].for_variable);
         for_stack[for_stack_ptr].to = to;
 
         for_stack_ptr++;
@@ -1140,7 +1152,7 @@ static void poke_handler()
     VARIANT var;
 
     accept_token(K_POKE);
-    //printf("okk");
+    //MY_PRINT("okk");
     var = expr();
     dst = (int)var.U.d;
     accept_token(COMMA);
@@ -1165,28 +1177,28 @@ static void handler(void)
     register CORE_DATA token;
 
     token = search_token();
-    //printf("aaa%daaa\n",token);
+    //MY_PRINT("aaa%daaa\n",token);
     switch (token)
     {
     case K_PRINT:
-        //printf("print\n handler\n");
+        //MY_PRINT("print\n handler\n");
         print_handler();
         break;
     case K_IF:
-        //printf("if\n handler\n");
+        //MY_PRINT("if\n handler\n");
         if_handler();
         break;
     case K_GOTO:
-        //printf("goto\n handler\n");
+        //MY_PRINT("goto\n handler\n");
         goto_handler();
         break;
     case K_GOSUB:
-        //printf("gosub\n handler\n");
-        //printf("gosub");
+        //MY_PRINT("gosub\n handler\n");
+        //MY_PRINT("gosub");
         gosub_handler();
         break;
     case K_RETURN:
-        //printf("return\n handler\n");
+        //MY_PRINT("return\n handler\n");
         return_handler();
         break;
     case K_FOR:
@@ -1194,19 +1206,19 @@ static void handler(void)
         for_handler();
         break;
     case K_NEXT:
-        //printf("next\n handler\n");
+        //MY_PRINT("next\n handler\n");
         next_handler();
         break;
     case K_END:
-        //printf("dne\n handler\n");
+        //MY_PRINT("dne\n handler\n");
         end_handler();
         break;
     case K_LET:
-        // printf("let\n handler\n");
+        // MY_PRINT("let\n handler\n");
         accept_token(K_LET);
         /* Fall through. */
     case VARIABLE:
-        //printf("variable\n handler\n");
+        //MY_PRINT("variable\n handler\n");
         let_handler();
         break;
     case K_POKE:
@@ -1217,7 +1229,7 @@ static void handler(void)
         break;
     default:
         break;
-        printf("!!!!!!!!!!error!!!!!!!!!!!\n");
+        MY_PRINT("!!!!!!!!!!error!!!!!!!!!!!\n");
     }
 }
 
@@ -1246,10 +1258,10 @@ int if_variable_existed(char *name) //判断变量是否已经存在
        
         if (!strcmp(name, search_index[i].name))
         {
-            //printf("indexnow:%d,namenow:%s,ptrnow:%d\n",i,search_index[i].name,search_index[i].name_ptr);
+            //MY_PRINT("indexnow:%d,namenow:%s,ptrnow:%d\n",i,search_index[i].name,search_index[i].name_ptr);
             int var_num_now = search_index[i].name_ptr;
-            //printf("\n,%s,%s,%s,%s\n", search_index[0].name, search_index[1].name, search_index[2].name, search_index[3].name);
-            //printf("\nxiagntong :%s,%d\n",name,var_num_now);
+            //MY_PRINT("\n,%s,%s,%s,%s\n", search_index[0].name, search_index[1].name, search_index[2].name, search_index[3].name);
+            //MY_PRINT("\nxiagntong :%s,%d\n",name,var_num_now);
             return var_num_now;
             
         }
@@ -1262,28 +1274,28 @@ int if_variable_existed(char *name) //判断变量是否已经存在
 void set_variable(char * name, VARIANT value) //
 {
     if (var_mem_ptr >= 0 && var_mem_ptr <= MAX_VARNUM) //在变量数量范围内
-    //printf("input val:%g\n",value.U.d);
+    //MY_PRINT("input val:%g\n",value.U.d);
     {
         int t = if_variable_existed(name); //变量是否已经存在
-        //printf("tnow:%d",t);
+        //MY_PRINT("tnow:%d",t);
         if (t == -1)
         {
             VAR_NAME v_n;
             VARIANT val;
             char value_str[MAX_NUMLEN];
-            //printf("valuename :%s and ",name);
-            //printf("value_to_set :%g\n",value.U.d);
+            //MY_PRINT("valuename :%s and ",name);
+            //MY_PRINT("value_to_set :%g\n",value.U.d);
             //val.type = var_double;
             val = value;
             v_n.name_ptr = var_mem_ptr;
-            //printf("ptr %d\n" ,v_n.name_ptr);
+            //MY_PRINT("ptr %d\n" ,v_n.name_ptr);
             //itoa(value, value_str, 10);
             //search_index[var_mem_ptr].name=name;
             strcpy(search_index[var_mem_ptr].name, name);
             search_index[var_mem_ptr].name_ptr = var_mem_ptr;
             var_mem[var_mem_ptr] = val;
-            // printf("now i :%d\n",var_mem_ptr);
-            //printf("\nthings:%g,%g,%g,%g,%g\n",var_mem[0].U.d,var_mem[1].U.d,var_mem[2].U.d,var_mem[3].U.d);
+            // MY_PRINT("now i :%d\n",var_mem_ptr);
+            //MY_PRINT("\nthings:%g,%g,%g,%g,%g\n",var_mem[0].U.d,var_mem[1].U.d,var_mem[2].U.d,var_mem[3].U.d);
             var_mem_ptr++;
         }
         else
@@ -1293,19 +1305,19 @@ void set_variable(char * name, VARIANT value) //
             VARIANT val;
             char value_str[MAX_NUMLEN];
 
-            //val.type = var_double;
+            val.type = var_double;
             val = value;
-            //printf("\nnow val :%d\n",val.U.d);
+            //MY_PRINT("\nnow val :%d\n",val.U.d);
             v_n.name_ptr = t;
-            //printf("\nt:%d\n",t);
+            //MY_PRINT("\nt:%d\n",t);
             //itoa(value, value_str, 10);
             //search_index[var_mem_ptr].name=name;
             strcpy(search_index[t].name, name);
             //search_index[t].name_ptr = var_mem_ptr;
             var_mem[t] = val;
-            // printf("now i :%d\n",var_mem_ptr);
-            //printf("now giaogiao :%g,t:%d\n",var_mem[t].U.d,t);
-            //printf("\nthings:%g,%g,%g,%g,%g\n",var_mem[0].U.d,var_mem[1].U.d,var_mem[2].U.d,var_mem[3].U.d);
+            // MY_PRINT("now i :%d\n",var_mem_ptr);
+            //MY_PRINT("now giaogiao :%g,t:%d\n",var_mem[t].U.d,t);
+            //MY_PRINT("\nthings:%g,%g,%g,%g,%g\n",var_mem[0].U.d,var_mem[1].U.d,var_mem[2].U.d,var_mem[3].U.d);
         }
     }
 }
@@ -1313,25 +1325,25 @@ void set_variable(char * name, VARIANT value) //
 VARIANT get_variable(char *name) //取出变量并返回
 {
 name = string;
-//printf("hello\n");
+//MY_PRINT("hello\n");
     for (int i = 0; i < var_mem_ptr + 1; i++)
     {
-//printf("/////\nnow ::::%g\nnext:::%g\nnenext::%g\n////////\n",
+//MY_PRINT("/////\nnow ::::%g\nnext:::%g\nnenext::%g\n////////\n",
 //var_mem[search_index[i].name_ptr].U.d,var_mem[search_index[i+1].name_ptr].U.d,var_mem[search_index[i+2].name_ptr].U.d);
-        //printf("namenow: '%s' \nname search:'%s'",name,search_index[i].name);
+        //MY_PRINT("namenow: '%s' \nname search:'%s'",name,search_index[i].name);
         int a = strcmp(name, search_index[i].name);
 
         if (!a)
         {
             int var_num_now = search_index[i].name_ptr;
-            //printf("var_get : %g  type: %d\n",var_mem[var_num_now].U.d,var_mem[var_num_now].type);
+            //MY_PRINT("var_get : %g  type: %d\n",var_mem[var_num_now].U.d,var_mem[var_num_now].type);
             return var_mem[var_num_now];
         }
         else {
-            //printf("\nnothing\n");
+            //MY_PRINT("\nnothing\n");
         }
     }
-    //printf("\n\nempty:%s\n",string);
+    //MY_PRINT("\n\nempty:%s\n",string);
     return empty;
 }
 

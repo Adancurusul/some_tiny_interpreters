@@ -1,7 +1,7 @@
 /*
 author : Adancurusul
-chen.yuheng@nexuslink.cn
-version：0.0.4
+email  :chen.yuheng@nexuslink.cn
+version：0.0.4   2020/4/8
 介绍：
 这是一个可以嵌入任何只要支持printf函数的系统或单片机中的类basic语言解释器；
 内存开销也极小
@@ -15,10 +15,10 @@ peek ,poke语句
 使用只用传入程序的字符串数组到interpreter_init
 然后do_interpretation即可
 interpreter_finished作为结束标志
-
+目标平台支持printf即可
 *******************************************************************************************
 0.0.4相对0.0.3支持了math库部分功能
-下一步开始数学库的支持
+下一步完善数学库和矩阵运算的支持
 本解释器目标是作为一种高移植性，能进行科学运算的语言。
 敬请期待后续
 
@@ -27,53 +27,38 @@ interpreter_finished作为结束标志
 #include <stdio.h> //printf
 #include "mymath.h"
 #include "tiny_basic_interpreter.h"
-#define MAX_GOSUB_DEPTH 20
-#define MAX_STR_LENGTHSTR_LENGTH 50
-#define MAX_FOR_DEPTHMAX_FOR_DEPTH 6
-#define MAX_VARNUM 40
-#define MAX_NUMLEN 20
-#define isdigit(c) ((c) >= '0' && (c) <= '9')
-#define CHANGE_LOWER 'A' - 'a'
+#define MAX_GOSUB_DEPTH 20//gosub 语句最多20次嵌套
+#define MAX_STR_LENGTHSTR_LENGTH 50//string长度最多50字节
+#define MAX_FOR_DEPTHMAX_FOR_DEPTH 6//for循环最多嵌套次数5
+#define MAX_VARNUM 261 //最多储存261个变量（比原版basic多1（个人喜好 
+#define MAX_NUMLEN 20  //number最大长度
+#define isdigit(c) ((c) >= '0' && (c) <= '9') //检测是否是数字
+#define CHANGE_LOWER 'A' - 'a'  //大写转小写
 
-static char string[MAX_STR_LENGTHSTR_LENGTH];
-static int gosub_stack[MAX_GOSUB_DEPTH];
-static int gosub_stack_ptr;
-static char const *program_ptr, *ptr, *nextptr, *startptr;
+static char string[MAX_STR_LENGTHSTR_LENGTH]; //全局字符串，为防止指针滥用造成内存问题部分参数使用这个传递
+static int gosub_stack[MAX_GOSUB_DEPTH]; //gosub的栈
+static int gosub_stack_ptr; //gosub 的指针
+static char const *program_ptr, *ptr, *nextptr, *startptr;//用于词法分析的指针
 typedef struct for_state
 {
     int line_after_for;
     STR for_variable;
     int to;
-} FOR_STATE;
+} FOR_STATE;//for循环使用
 
 
 //typedef char STR[128];
 
-static VAR_NAME search_index[MAX_VARNUM];
+static VAR_NAME search_index[MAX_VARNUM];//为寻找变量对应储存区实现的一个静态数组
 
-static VARIANT empty = {var_null, 0};
+static VARIANT empty = {var_null, 0}; //索引variable为检测到值的返回
 static VARIANT var_mem[MAX_VARNUM]; //储存变量
-int var_mem_ptr = 0;
-///////////////////////////////////
-//////////////////////////////////
-/////////////////////////////////malloc
+int var_mem_ptr = 0;//初始化指针
 
-//////////////////////////////////
-///////////////////////////////////
-///////////////////////////////////
-
-///////////////////////////////////
-//////////////////////////////////hashmap
-/////////////////////////////////
-////////////////////////////////
-
-//////////////////////////////////
-//////////////////////////////////
-//////////////////////////////////
-static FOR_STATE for_stack[MAX_FOR_DEPTHMAX_FOR_DEPTH];
-static int for_stack_ptr;
+static FOR_STATE for_stack[MAX_FOR_DEPTHMAX_FOR_DEPTH];//for循环栈
+static int for_stack_ptr;//for 栈指针
 //static char variables[MAX_VARNUM];
-static int ended;
+static int ended;  
 static VARIANT expr(void);
 static void line_handler(void);
 static void handler(void);
@@ -360,15 +345,15 @@ typedef struct keyword_token
 {
     char *keyword;
     CORE_DATA token;
-} KEYS;
+} KEYS;//获取token的结构体
 typedef struct
 {
     char *math_keyword;
     OP_MATH math_name;
-} MATH_KEYS;
+} MATH_KEYS;//获取数学库的结构体
 
-OP_MATH op_now = NOTHING;
-static CORE_DATA token_now = ERROR;
+OP_MATH op_now = NOTHING;//初始化
+static CORE_DATA token_now = ERROR;//初始化
 
 const MATH_KEYS math_keywords[] = {
     /*SQRT = 1,EXP,POW,POWF,LOG,LN,SIN,COS,TAN,ARCSIN,ARCCOS,ARCTAN,SINH,CONSH,TANH,NOTHING*/
@@ -388,7 +373,7 @@ const MATH_KEYS math_keywords[] = {
     {"consh", COSH},
     {"tanh", TANH},
     {NULL, NOTHING},
-};
+};//用于匹配math
 const KEYS keywords[] = {
     {"let", K_LET},
     {"print", K_PRINT},
@@ -405,9 +390,9 @@ const KEYS keywords[] = {
     {"end", K_END},
     {"poke", K_POKE},
     {"peek", K_PEEK},
-    {NULL, ERROR}};
+    {NULL, ERROR}};//用于匹配keys
 
-static CORE_DATA if_one_char(void)
+static CORE_DATA if_one_char(void) //如果搜索到为单个字符时的处理函数
 {
     switch (*ptr)
     {
@@ -460,7 +445,7 @@ static CORE_DATA if_one_char(void)
     }
 }
 
-static CORE_DATA get_next_token(void)
+static CORE_DATA get_next_token(void) //词法分析器核心部分：词法拆分
 {
     KEYS const *kt;
     MATH_KEYS const *mk;
@@ -505,7 +490,7 @@ static CORE_DATA get_next_token(void)
         printf("get_next_token: error due to too long number\n");
         return ERROR;
     }
-    else if (if_one_char())
+    else if (if_one_char())//单个字符
     {
         nextptr = ptr + 1;
         return if_one_char();
@@ -522,7 +507,7 @@ static CORE_DATA get_next_token(void)
     }
     else
     {
-        for (kt = keywords; kt->keyword != NULL; ++kt)
+        for (kt = keywords; kt->keyword != NULL; ++kt)//寻找是否为token
         {
             if (strncmp(ptr, kt->keyword, strlen(kt->keyword)) == 0)
             {
@@ -530,7 +515,7 @@ static CORE_DATA get_next_token(void)
                 return kt->token;
             }
         }
-        for (mk = math_keywords; mk->math_keyword != NULL; ++mk)
+        for (mk = math_keywords; mk->math_keyword != NULL; ++mk)//寻找是否为数学库
         {
             if (strncmp(ptr, mk->math_keyword, strlen(mk->math_keyword)) == 0)
             {
@@ -544,7 +529,7 @@ static CORE_DATA get_next_token(void)
     }
     int status = 0;
     startptr = ptr;
-    while (*ptr >= 'a' && *ptr <= 'z')
+    while (*ptr >= 'a' && *ptr <= 'z')//查找变量
     {
         status = 1;
         nextptr = ptr + 1;
@@ -559,7 +544,7 @@ static CORE_DATA get_next_token(void)
     return ERROR;
 }
 
-void search_init(const char *program)
+void search_init(const char *program)//初始化查找
 {
     ptr = program;
     token_now = get_next_token();
@@ -592,7 +577,7 @@ double search_num(void)
     return atof(ptr);
 }
 
-void search_string(char *dest, int len)
+void search_string(char *dest, int len)//查找字符串
 {
     char *string_end;
     register int string_len;

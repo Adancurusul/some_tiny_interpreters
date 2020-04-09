@@ -602,6 +602,7 @@ void search_string(char *dest, int len)//查找字符串
     if (string_end == NULL)
     {
         return;
+        
     }
     string_len = string_end - ptr - 1;
     if (len < string_len)

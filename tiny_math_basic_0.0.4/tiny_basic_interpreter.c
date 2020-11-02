@@ -32,7 +32,7 @@ interpreter_finished作为结束标志
 
 
 #include <stdio.h> //MY_PRINT
-#include "mymath.h"
+#include "math_dict/mymath.h"
 #include "tiny_basic_interpreter.h"
 #define MAX_GOSUB_DEPTH 20//gosub 语句最多20次嵌套
 #define MAX_STR_LENGTHSTR_LENGTH 50//string长度最多50字节
